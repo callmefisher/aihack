@@ -37,10 +37,14 @@ cp config.example.json config.json
   "image_api_key": "YOUR_STABILITY_AI_KEY",
   "tts_provider": "azure",
   "tts_api_key": "YOUR_AZURE_TTS_KEY",
+  "baidu_app_id": "YOUR_BAIDU_APP_ID",
+  "baidu_secret_key": "YOUR_BAIDU_SECRET_KEY",
   "scene_duration": 5.0,
   "fps": 30
 }
 ```
+
+注意：使用百度 TTS 时，将 `tts_provider` 设置为 `baidu`，并填写 `tts_api_key`（API Key）和 `baidu_secret_key`（Secret Key）。
 
 ### 3. 运行示例
 
@@ -101,6 +105,7 @@ python main.py my_novel.txt -c my_config.json
 支持的提供商：
 - `azure`: Azure Cognitive Services TTS (推荐)
 - `openai`: OpenAI TTS
+- `baidu`: 百度语音合成 TTS
 
 ### 其他选项
 
@@ -141,6 +146,14 @@ output/
 1. 访问 [OpenAI Platform](https://platform.openai.com/)
 2. 创建API密钥
 3. 可用于图像生成或TTS
+
+### 百度 TTS
+1. 访问 [百度AI开放平台](https://ai.baidu.com/)
+2. 创建语音合成应用
+3. 获取 API Key 和 Secret Key
+4. 将 API Key 填入配置文件的 `tts_api_key`
+5. 将 Secret Key 填入配置文件的 `baidu_secret_key`
+6. 将 `tts_provider` 设置为 `baidu`
 
 ## ⚠️ 注意事项
 

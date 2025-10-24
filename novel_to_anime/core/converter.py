@@ -27,7 +27,9 @@ class NovelToAnimeConverter:
         
         self.tts = TextToSpeech(
             api_key=self.config.get('tts_api_key'),
-            provider=self.config.get('tts_provider', 'azure')
+            provider=self.config.get('tts_provider', 'azure'),
+            app_id=self.config.get('baidu_app_id'),
+            secret_key=self.config.get('baidu_secret_key')
         )
         
         self.video_composer = VideoComposer()
