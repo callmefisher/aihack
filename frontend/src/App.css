@@ -21,6 +21,26 @@
   opacity: 0.9;
 }
 
+.reset-button {
+  margin-top: 1rem;
+  padding: 10px 20px;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 2px solid white;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.reset-button:hover {
+  background: white;
+  color: #282c34;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
 .App-main {
   flex: 1;
   display: flex;

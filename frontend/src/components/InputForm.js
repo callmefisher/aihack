@@ -16,20 +16,23 @@ function InputForm({ onTaskCreated }) {
 
     try {
       let response;
+      let text;
       
       if (inputType === 'text') {
         if (!textInput.trim()) {
           throw new Error('请输入小说文本');
         }
+        text = textInput;
         response = await createTextTask(textInput);
       } else {
         if (!urlInput.trim()) {
           throw new Error('请输入小说URL');
         }
         response = await createURLTask(urlInput);
+        text = response.text || urlInput;
       }
 
-      onTaskCreated(response.task_id);
+      onTaskCreated(response.task_id, text);
     } catch (err) {
       setError(err.response?.data?.detail || err.message || '提交失败，请重试');
     } finally {
