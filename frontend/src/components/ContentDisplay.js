@@ -8,13 +8,14 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate }) {
   const [audioPlaying, setAudioPlaying] = useState(null);
   const [zoomedImage, setZoomedImage] = useState(null);
   const [speechPlaying, setSpeechPlaying] = useState(null);
+  const [currentImageIndex, setCurrentImageIndex] = useState({});
 
   useEffect(() => {
     if (paragraphs && paragraphs.length > 0) {
       const initialItems = paragraphs.map((text, index) => ({
         id: index + 1,
         text,
-        image: null,
+        images: [],
         video: null,
         audioUrl: null,
         loadingImage: false,
@@ -35,7 +36,7 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate }) {
   const processTestMode = (itemsList) => {
     const updatedItems = itemsList.map((item, index) => ({
       ...item,
-      image: '/test.jpeg',
+      images: ['/test.jpeg', '/test.jpeg', '/test.jpeg'],
       loadingImage: false,
       progress: 100
     }));
@@ -74,7 +75,7 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate }) {
         const updated = [...prev];
         updated[index] = {
           ...updated[index],
-          image: response.image_url,
+          images: [response.image_url, response.image_url, response.image_url],
           audioUrl: response.audio_url,
           loadingImage: false,
           progress: 100
@@ -181,6 +182,44 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate }) {
     window.speechSynthesis.speak(utterance);
   };
 
+  const handlePrevImage = (itemIndex) => {
+    const item = items[itemIndex];
+    if (!item.images || item.images.length === 0) return;
+    
+    setCurrentImageIndex(prev => {
+      const current = prev[itemIndex] || 0;
+      const newIndex = current === 0 ? item.images.length - 1 : current - 1;
+      return { ...prev, [itemIndex]: newIndex };
+    });
+  };
+
+  const handleNextImage = (itemIndex) => {
+    const item = items[itemIndex];
+    if (!item.images || item.images.length === 0) return;
+    
+    setCurrentImageIndex(prev => {
+      const current = prev[itemIndex] || 0;
+      const newIndex = (current + 1) % item.images.length;
+      return { ...prev, [itemIndex]: newIndex };
+    });
+  };
+
+  useEffect(() => {
+    const intervals = {};
+    
+    items.forEach((item, index) => {
+      if (item.images && item.images.length > 1) {
+        intervals[index] = setInterval(() => {
+          handleNextImage(index);
+        }, 3000);
+      }
+    });
+
+    return () => {
+      Object.values(intervals).forEach(interval => clearInterval(interval));
+    };
+  }, [items]);
+
   const handleGenerateVideo = async (index) => {
     const item = items[index];
 
@@ -201,7 +240,8 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate }) {
         });
       }, 1000);
 
-      const response = await generateVideo(taskId, item.text, index + 1, item.image);
+      const currentImage = item.images && item.images.length > 0 ? item.images[0] : null;
+      const response = await generateVideo(taskId, item.text, index + 1, currentImage);
       
       clearInterval(progressInterval);
 
@@ -234,7 +274,7 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate }) {
     }
   };
 
-  const completedItems = items.filter(item => item.image).length;
+  const completedItems = items.filter(item => item.images && item.images.length > 0).length;
   const totalItems = items.length;
   const overallProgress = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
   
@@ -288,14 +328,54 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate }) {
                       </div>
                       <p>生成中... {item.progress}%</p>
                     </div>
-                  ) : item.image ? (
-                    <img 
-                      src={item.image} 
-                      alt={`Scene ${item.id}`} 
-                      onClick={() => handleImageClick(item.image)}
-                      style={{ cursor: 'pointer' }}
-                      title="点击放大图片"
-                    />
+                  ) : item.images && item.images.length > 0 ? (
+                    <div className="image-carousel">
+                      {item.images.length > 1 && (
+                        <button 
+                          className="carousel-btn carousel-btn-prev" 
+                          onClick={() => handlePrevImage(index)}
+                          aria-label="上一张"
+                        >
+                          ‹
+                        </button>
+                      )}
+                      <div className="carousel-images">
+                        {item.images.map((imgUrl, imgIndex) => (
+                          <img 
+                            key={imgIndex}
+                            src={imgUrl} 
+                            alt={`Scene ${item.id}-${imgIndex + 1}`} 
+                            onClick={() => handleImageClick(imgUrl)}
+                            style={{ 
+                              cursor: 'pointer',
+                              display: (currentImageIndex[index] || 0) === imgIndex ? 'block' : 'none'
+                            }}
+                            title="点击放大图片"
+                            className="carousel-image"
+                          />
+                        ))}
+                      </div>
+                      {item.images.length > 1 && (
+                        <button 
+                          className="carousel-btn carousel-btn-next" 
+                          onClick={() => handleNextImage(index)}
+                          aria-label="下一张"
+                        >
+                          ›
+                        </button>
+                      )}
+                      {item.images.length > 1 && (
+                        <div className="carousel-indicators">
+                          {item.images.map((_, imgIndex) => (
+                            <span 
+                              key={imgIndex}
+                              className={`indicator ${(currentImageIndex[index] || 0) === imgIndex ? 'active' : ''}`}
+                              onClick={() => setCurrentImageIndex(prev => ({ ...prev, [index]: imgIndex }))}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   ) : (
                     <div className="placeholder">等待生成...</div>
                   )}
