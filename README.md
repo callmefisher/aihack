@@ -107,6 +107,7 @@ python main.py my_novel.txt -c my_config.json
 - `azure`: Azure Cognitive Services TTS (推荐)
 - `openai`: OpenAI TTS
 - `baidu`: 百度语音合成 TTS
+- `qiniu`: 七牛 AI 语音合成 TTS
 
 ### 其他选项
 
@@ -160,7 +161,8 @@ output/
 1. 访问 [七牛AI开放平台](https://ai.qiniu.com/)
 2. 创建应用并获取 API Key
 3. 将 API Key 填入配置文件的 `qiniu_api_key`
-4. 将 `image_provider` 设置为 `qiniu`
+4. 使用图像生成：将 `image_provider` 设置为 `qiniu`
+5. 使用语音合成：将 `tts_provider` 设置为 `qiniu`，将 API Key 填入 `tts_api_key`
 
 ## ⚠️ 注意事项
 
