@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     TTS_API_KEY: str = os.getenv("TTS_API_KEY", "")
     BAIDU_APP_ID: str = os.getenv("BAIDU_APP_ID", "")
     BAIDU_SECRET_KEY: str = os.getenv("BAIDU_SECRET_KEY", "")
+    QINIU_API_KEY: str = os.getenv("QINIU_API_KEY", "")
     
     OUTPUT_DIR: str = "backend/output"
     

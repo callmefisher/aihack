@@ -15,7 +15,7 @@ class TTSService:
     def text_to_speech(
         self, 
         text: str, 
-        provider: str = "azure",
+        provider: str = "qiniu",
         language: str = "zh-CN",
         api_key: str = None,
         app_id: str = None,

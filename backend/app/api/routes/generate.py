@@ -42,7 +42,7 @@ async def generate_image(request: GenerateImageRequest):
         if not audio_path.exists():
             audio_result = await tts_service.text_to_speech(
                 text=request.text,
-                provider="azure",
+                provider="qiniu",
                 language="zh-CN",
                 output_path=str(audio_path)
             )

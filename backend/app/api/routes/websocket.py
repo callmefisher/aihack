@@ -4,6 +4,7 @@ import json
 import httpx
 import asyncio
 from pathlib import Path
+from app.core.config import settings
 
 router = APIRouter()
 
@@ -13,7 +14,7 @@ class QiniuTTSService:
     
     def __init__(self):
         self.api_url = "https://openai.qiniu.com/v1/voice/tts"
-        self.api_token = "123456789"
+        self.api_token = settings.QINIU_API_KEY
     
     async def text_to_speech(self, text: str) -> Dict[str, Any]:
         """

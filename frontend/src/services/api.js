@@ -50,7 +50,7 @@ export const generateVideo = async (taskId, text, paragraphNumber, imageUrl) => 
 export const getAudio = async (taskId, text, paragraphNumber) => {
   const response = await axios.post(`${API_BASE_URL}/tts`, {
     text,
-    provider: 'azure',
+    provider: 'qiniu',
     language: 'zh-CN'
   });
   return response.data;
