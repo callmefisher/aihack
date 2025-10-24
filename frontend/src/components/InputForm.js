@@ -86,23 +86,19 @@ function InputForm({ onTaskCreated }) {
           response = { task_id: 'test-mode', status: 'test' };
           setProgress(100);
           onTaskCreated(response.task_id, text);
+        } else if (useWebSocket && wsConnected) {
+          // WebSocket模式 - 不调用HTTP API
+          setProgress(50);
+          wsService.sendText(textInput);
+          // WebSocket会通过事件回调处理响应
+          response = { task_id: `ws-${Date.now()}`, status: 'processing' };
+          onTaskCreated(response.task_id, text);
         } else {
-          // 使用WebSocket或HTTP
-          if (useWebSocket && wsConnected) {
-            // WebSocket模式
-            setProgress(50);
-            wsService.sendText(textInput);
-            // WebSocket会通过事件回调处理响应
-            // 这里暂时使用临时task_id
-            response = { task_id: `ws-${Date.now()}`, status: 'processing' };
-            onTaskCreated(response.task_id, text);
-          } else {
-            // HTTP模式（兼容旧版）
-            setProgress(30);
-            response = await createTextTask(textInput);
-            setProgress(100);
-            onTaskCreated(response.task_id, text);
-          }
+          // HTTP模式（仅在WebSocket未启用或未连接时使用）
+          setProgress(30);
+          response = await createTextTask(textInput);
+          setProgress(100);
+          onTaskCreated(response.task_id, text);
         }
       } else {
         if (!urlInput.trim()) {
