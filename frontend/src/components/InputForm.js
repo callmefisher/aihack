@@ -35,8 +35,41 @@ function InputForm({ onTaskCreated }) {
 
       const handleTTSResult = (data) => {
         setStreamingMessages(prev => [...prev, { type: 'tts_result', ...data }]);
-        // 这里可以处理TTS结果，比如显示音频URL
         console.log('TTS结果:', data);
+        
+        // 处理七牛云TTS返回的base64音频数据
+        if (data.data && data.data.data) {
+          try {
+            // 解码base64音频数据
+            const base64Audio = data.data.data;
+            const binaryString = atob(base64Audio);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+              bytes[i] = binaryString.charCodeAt(i);
+            }
+            
+            // 创建Blob对象
+            const blob = new Blob([bytes], { type: 'audio/mpeg' });
+            const audioUrl = URL.createObjectURL(blob);
+            
+            // 创建并播放音频
+            const audio = new Audio(audioUrl);
+            audio.play().then(() => {
+              console.log('音频播放成功');
+            }).catch(error => {
+              console.error('音频播放失败:', error);
+              setError('音频播放失败: ' + error.message);
+            });
+            
+            // 清理URL对象（在音频播放结束后）
+            audio.onended = () => {
+              URL.revokeObjectURL(audioUrl);
+            };
+          } catch (error) {
+            console.error('解码base64音频失败:', error);
+            setError('解码音频失败: ' + error.message);
+          }
+        }
       };
 
       const handleError = (data) => {
