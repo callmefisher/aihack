@@ -289,47 +289,45 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate }) {
                       <p>生成中... {item.progress}%</p>
                     </div>
                   ) : item.image ? (
-                    <>
-                      <img 
-                        src={item.image} 
-                        alt={`Scene ${item.id}`} 
-                        onClick={() => handleImageClick(item.image)}
-                        style={{ cursor: 'pointer' }}
-                        title="点击放大图片"
-                      />
-                      <div className="image-actions">
-                        <button
-                          className={`action-button ${speechPlaying === index ? 'playing' : ''}`}
-                          onClick={() => handlePlaySpeech(item.text, index)}
-                        >
-                          {speechPlaying === index ? '⏸️ 停止朗读' : '🔊 朗读段落'}
-                        </button>
-                        <button
-                          className={`action-button ${audioPlaying === index ? 'playing' : ''}`}
-                          onClick={() => handlePlayAudio(index)}
-                          disabled={item.loadingAudio}
-                        >
-                          {item.loadingAudio ? '⏳' : audioPlaying === index ? '⏸️' : '🔊'} 
-                          {item.loadingAudio ? ' 加载中' : audioPlaying === index ? ' 暂停' : ' 播放声音'}
-                        </button>
-                        <button
-                          className="action-button"
-                          onClick={() => handleGenerateVideo(index)}
-                          disabled={item.loadingVideo}
-                        >
-                          {item.loadingVideo ? '⏳ 生成中...' : '🎬 生成视频'}
-                        </button>
-                      </div>
-                      {item.loadingVideo && (
-                        <div className="progress-bar">
-                          <div className="progress-fill" style={{ width: `${item.progress}%` }}></div>
-                        </div>
-                      )}
-                    </>
+                    <img 
+                      src={item.image} 
+                      alt={`Scene ${item.id}`} 
+                      onClick={() => handleImageClick(item.image)}
+                      style={{ cursor: 'pointer' }}
+                      title="点击放大图片"
+                    />
                   ) : (
                     <div className="placeholder">等待生成...</div>
                   )}
                 </div>
+                <div className="image-actions">
+                  <button
+                    className={`action-button ${speechPlaying === index ? 'playing' : ''}`}
+                    onClick={() => handlePlaySpeech(item.text, index)}
+                  >
+                    {speechPlaying === index ? '⏸️ 停止朗读' : '🔊 朗读段落'}
+                  </button>
+                  <button
+                    className={`action-button ${audioPlaying === index ? 'playing' : ''}`}
+                    onClick={() => handlePlayAudio(index)}
+                    disabled={item.loadingAudio}
+                  >
+                    {item.loadingAudio ? '⏳' : audioPlaying === index ? '⏸️' : '🔊'} 
+                    {item.loadingAudio ? ' 加载中' : audioPlaying === index ? ' 暂停' : ' 播放声音'}
+                  </button>
+                  <button
+                    className="action-button"
+                    onClick={() => handleGenerateVideo(index)}
+                    disabled={item.loadingVideo}
+                  >
+                    {item.loadingVideo ? '⏳ 生成中...' : '🎬 生成视频'}
+                  </button>
+                </div>
+                {item.loadingVideo && (
+                  <div className="progress-bar">
+                    <div className="progress-fill" style={{ width: `${item.progress}%` }}></div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
