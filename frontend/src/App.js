@@ -11,6 +11,7 @@ function App() {
   const [videoUrl, setVideoUrl] = useState(null);
   const [paragraphs, setParagraphs] = useState(null);
   const [showContent, setShowContent] = useState(false);
+  const [progress, setProgress] = useState({ completed: 0, total: 0 });
 
   const handleTaskCreated = (id, text) => {
     setTaskId(id);
@@ -50,7 +51,19 @@ function App() {
       <main className="App-main">
         {!showContent && <InputForm onTaskCreated={handleTaskCreated} />}
         
-        <ContentDisplay taskId={taskId} paragraphs={paragraphs} />
+        {showContent && (
+          <div className="progress-container">
+            <div className="progress-info">
+              <span>处理进度:</span>
+              <span>{progress.completed}/{progress.total}</span>
+            </div>
+            <div className="progress-bar-wrapper">
+              <div className="progress-bar-fill" style={{ width: `${progress.total > 0 ? (progress.completed / progress.total * 100) : 0}%` }}></div>
+            </div>
+          </div>
+        )}
+        
+        <ContentDisplay taskId={taskId} paragraphs={paragraphs} onProgressUpdate={setProgress} />
         
         {taskCompleted && videoUrl && (
           <VideoPlayer 
