@@ -37,55 +37,79 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap })
 
   useEffect(() => {
     const handleImageResult = (payload) => {
-      console.log('ContentDisplay收到图片结果:', payload);
+      console.log('=== ContentDisplay收到图片结果 ===');
+      console.log('完整payload:', JSON.stringify(payload, null, 2));
+      console.log('当前items数组长度:', items.length);
       
       const { data, paragraph_number } = payload;
       
-      if (data && data.data && Array.isArray(data.data)) {
-        try {
-          const imageUrls = data.data.map(img => {
-            const base64Data = img.b64_json;
-            return `data:image/${data.output_format || 'png'};base64,${base64Data}`;
-          });
+      if (!data || !data.data || !Array.isArray(data.data)) {
+        console.error('❌ 图片数据格式不正确:', {
+          hasData: !!data,
+          hasDataData: !!(data && data.data),
+          isArray: !!(data && data.data && Array.isArray(data.data)),
+          payload
+        });
+        return;
+      }
+      
+      try {
+        console.log(`✅ 开始处理 ${data.data.length} 张图片`);
+        const imageUrls = data.data.map((img, idx) => {
+          const base64Data = img.b64_json;
+          const url = `data:image/${data.output_format || 'png'};base64,${base64Data}`;
+          console.log(`  图片 ${idx + 1}: base64长度=${base64Data?.length || 0}, URL长度=${url.length}`);
+          return url;
+        });
+        
+        console.log(`准备更新段落 ${paragraph_number}, 索引=${paragraph_number - 1}`);
+        setItems(prev => {
+          const updated = [...prev];
+          const index = paragraph_number - 1;
+          console.log(`  当前items长度=${updated.length}, 目标索引=${index}`);
           
+          if (index >= 0 && index < updated.length) {
+            updated[index] = {
+              ...updated[index],
+              images: imageUrls,
+              loadingImage: false,
+              progress: 100
+            };
+            console.log(`✅ 段落 ${paragraph_number} 图片已更新，图片数量=${imageUrls.length}`);
+          } else {
+            console.error(`❌ 索引越界: index=${index}, items.length=${updated.length}`);
+          }
+          return updated;
+        });
+        
+        setTimeout(() => {
           setItems(prev => {
             const updated = [...prev];
             const index = paragraph_number - 1;
             if (index >= 0 && index < updated.length) {
-              updated[index] = {
-                ...updated[index],
-                images: imageUrls,
-                loadingImage: false,
-                progress: 100
-              };
+              updated[index] = { ...updated[index], progress: 0 };
             }
             return updated;
           });
-          
-          setTimeout(() => {
-            setItems(prev => {
-              const updated = [...prev];
-              const index = paragraph_number - 1;
-              if (index >= 0 && index < updated.length) {
-                updated[index] = { ...updated[index], progress: 0 };
-              }
-              return updated;
-            });
-          }, 1000);
-        } catch (error) {
-          console.error('处理图片数据失败:', error);
-        }
+        }, 1000);
+      } catch (error) {
+        console.error('❌ 处理图片数据失败:', error);
+        console.error('错误堆栈:', error.stack);
       }
     };
     
     if (useWebSocket && wsService.isConnected()) {
+      console.log('✅ 注册image_result事件监听器');
       wsService.on('image_result', handleImageResult);
       
       return () => {
+        console.log('🔄 移除image_result事件监听器');
         wsService.off('image_result', handleImageResult);
       };
+    } else {
+      console.log('⚠️  WebSocket未连接，跳过事件监听器注册');
     }
-  }, [useWebSocket]);
+  }, [useWebSocket, items.length]);
 
   const processTestMode = (itemsList) => {
     const updatedItems = itemsList.map((item, index) => ({
