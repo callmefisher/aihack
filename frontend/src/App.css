@@ -69,3 +69,34 @@
   opacity: 0.8;
   color: white;
 }
+
+.progress-container {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  padding: 15px;
+  margin-bottom: 30px;
+  max-width: 1800px;
+  width: 100%;
+}
+
+.progress-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  color: #fff;
+  margin-bottom: 10px;
+}
+
+.progress-bar-wrapper {
+  height: 10px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #FF416C, #FF4B2B);
+  width: 0%;
+  transition: width 0.3s ease;
+}

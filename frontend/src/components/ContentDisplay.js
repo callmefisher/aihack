@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './ContentDisplay.css';
 import { generateImage, generateVideo, getAudio } from '../services/api';
 
-function ContentDisplay({ taskId, paragraphs }) {
+function ContentDisplay({ taskId, paragraphs, onProgressUpdate }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState({});
   const [audioPlaying, setAudioPlaying] = useState(null);
@@ -21,9 +21,24 @@ function ContentDisplay({ taskId, paragraphs }) {
         progress: 0
       }));
       setItems(initialItems);
-      processItemsSequentially(initialItems);
+      
+      if (taskId === 'test-mode') {
+        processTestMode(initialItems);
+      } else {
+        processItemsSequentially(initialItems);
+      }
     }
-  }, [paragraphs]);
+  }, [paragraphs, taskId]);
+
+  const processTestMode = (itemsList) => {
+    const updatedItems = itemsList.map((item, index) => ({
+      ...item,
+      image: '/test.jpeg',
+      loadingImage: false,
+      progress: 100
+    }));
+    setItems(updatedItems);
+  };
 
   const processItemsSequentially = async (itemsList) => {
     for (let i = 0; i < itemsList.length; i++) {
@@ -187,6 +202,12 @@ function ContentDisplay({ taskId, paragraphs }) {
   const completedItems = items.filter(item => item.image).length;
   const totalItems = items.length;
   const overallProgress = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
+  
+  useEffect(() => {
+    if (onProgressUpdate) {
+      onProgressUpdate({ completed: completedItems, total: totalItems });
+    }
+  }, [completedItems, totalItems, onProgressUpdate]);
 
   if (!paragraphs || paragraphs.length === 0) {
     return (
@@ -212,19 +233,9 @@ function ContentDisplay({ taskId, paragraphs }) {
 
   return (
     <div className="content-display">
-      <div className="progress-section">
-        <div className="progress-info">
-          <span>处理进度:</span>
-          <span>{completedItems}/{totalItems}</span>
-        </div>
-        <div className="progress-bar">
-          <div className="progress-fill" style={{ width: `${overallProgress}%` }}></div>
-        </div>
-      </div>
-
       <div className="sections-container">
         <div className="section image-section">
-          <h2>段落内容与图片</h2>
+          <h2>📷 段落内容与图片</h2>
           <div className="items-grid">
             {items.map((item, index) => (
               <div key={item.id} className="image-item">
@@ -278,7 +289,7 @@ function ContentDisplay({ taskId, paragraphs }) {
         </div>
 
         <div className="section video-section">
-          <h2>生成视频</h2>
+          <h2>🎥 生成视频</h2>
           <div className="items-grid">
             {items.map((item) => (
               <div key={item.id} className="video-item">

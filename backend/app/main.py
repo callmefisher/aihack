@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
-from app.api.routes import tts, generate
+from app.api.routes import tts, generate, tasks
 
 app = FastAPI(
     title="Novel to Anime API",
@@ -24,6 +24,7 @@ app.mount("/output", StaticFiles(directory="output"), name="output")
 
 app.include_router(tts.router, prefix="/api", tags=["Text-to-Speech"])
 app.include_router(generate.router, prefix="/api", tags=["Generate"])
+app.include_router(tasks.router, prefix="/api", tags=["Tasks"])
 
 @app.get("/")
 async def root():

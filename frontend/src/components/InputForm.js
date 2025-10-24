@@ -8,11 +8,13 @@ function InputForm({ onTaskCreated }) {
   const [urlInput, setUrlInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [progress, setProgress] = useState(0);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
+    setProgress(0);
 
     try {
       let response;
@@ -23,20 +25,33 @@ function InputForm({ onTaskCreated }) {
           throw new Error('请输入小说文本');
         }
         text = textInput;
-        response = await createTextTask(textInput);
+        
+        if (textInput.trim() === 'test') {
+          setProgress(50);
+          response = { task_id: 'test-mode', status: 'test' };
+          setProgress(100);
+        } else {
+          setProgress(30);
+          response = await createTextTask(textInput);
+          setProgress(100);
+        }
       } else {
         if (!urlInput.trim()) {
           throw new Error('请输入小说URL');
         }
+        setProgress(30);
         response = await createURLTask(urlInput);
         text = response.text || urlInput;
+        setProgress(100);
       }
 
       onTaskCreated(response.task_id, text);
     } catch (err) {
       setError(err.response?.data?.detail || err.message || '提交失败，请重试');
+      setProgress(0);
     } finally {
       setLoading(false);
+      setTimeout(() => setProgress(0), 1000);
     }
   };
 
@@ -95,6 +110,15 @@ function InputForm({ onTaskCreated }) {
           >
             {loading ? '⏳ 提交中...' : '🚀 开始生成'}
           </button>
+          
+          {loading && progress > 0 && (
+            <div className="progress-bar-container">
+              <div className="progress-bar">
+                <div className="progress-fill" style={{ width: `${progress}%` }}></div>
+              </div>
+              <div className="progress-text">{progress}%</div>
+            </div>
+          )}
         </form>
       </div>
     </div>
