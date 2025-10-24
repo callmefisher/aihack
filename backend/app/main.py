@@ -1,13 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from pathlib import Path
-
-from app.api.routes import tasks
+from app.api.routes import tts
 
 app = FastAPI(
     title="Novel to Anime API",
-    description="将小说转换为动漫视频的 Web API",
+    description="API for converting text to speech and generating anime videos from novels",
     version="1.0.0"
 )
 
@@ -19,20 +16,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-output_dir = Path("output")
-output_dir.mkdir(exist_ok=True)
-app.mount("/output", StaticFiles(directory="output"), name="output")
-
-app.include_router(tasks.router, prefix="/api")
+app.include_router(tts.router, prefix="/api", tags=["Text-to-Speech"])
 
 @app.get("/")
 async def root():
     return {
         "message": "Novel to Anime API",
-        "docs": "/docs",
-        "version": "1.0.0"
+        "version": "1.0.0",
+        "endpoints": {
+            "tts": "/api/tts",
+            "docs": "/docs"
+        }
     }
 
 @app.get("/health")
-async def health():
+async def health_check():
     return {"status": "healthy"}
