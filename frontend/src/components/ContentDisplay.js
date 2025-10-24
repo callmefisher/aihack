@@ -385,7 +385,7 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate }) {
                     className={`action-button ${speechPlaying === index ? 'playing' : ''}`}
                     onClick={() => handlePlaySpeech(item.text, index)}
                   >
-                    {speechPlaying === index ? '⏸️ 停止朗读' : '🔊 朗读段落'}
+                    {speechPlaying === index ? '⏸️ 停止浏览器本地朗读' : '🔊 浏览器本地朗读'}
                   </button>
                   <button
                     className={`action-button ${audioPlaying === index ? 'playing' : ''}`}

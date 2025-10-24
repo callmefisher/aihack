@@ -26,6 +26,8 @@ class QiniuTTSService:
         Returns:
             API响应数据
         """
+        print("hello world1111")
+        print(self.api_token)
         headers = {
             "Authorization": f"Bearer {self.api_token}",
             "Content-Type": "application/json"
