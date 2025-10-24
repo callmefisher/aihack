@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多媒体内容生成器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        h1 {
+            font-size: 2.8rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .input-section {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 40px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+
+        .input-container {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 150px;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            font-size: 1rem;
+            resize: vertical;
+            margin-bottom: 20px;
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        button {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 50px;
+            background: linear-gradient(90deg, #FF416C, #FF4B2B);
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255, 75, 43, 0.4);
+        }
+
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(255, 75, 43, 0.6);
+        }
+
+        button:active {
+            transform: translateY(1px);
+        }
+
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .media-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .media-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease;
+        }
+
+        .media-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .media-title {
+            font-size: 1.4rem;
+            margin-bottom: 20px;
+            text-align: center;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .media-content {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            max-height: 500px;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+
+        .media-item {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .item-title {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .item-sequence {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .item-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .item-btn {
+            padding: 5px 10px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        .item-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .audio-img-container {
+            display: flex;
+            gap: 15px;
+            align-items: flex-start;
+        }
+
+        .audio-container {
+            flex: 1;
+        }
+
+        .img-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .img-with-buttons {
+            position: relative;
+            display: flex;
+            justify-content: center;
+        }
+
+        .img-buttons {
+            position: absolute;
+            bottom: 10px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .img-btn {
+            padding: 8px 12px;
+            background: rgba(0, 0, 0, 0.7);
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.3s ease;
+        }
+
+        .img-btn:hover {
+            background: rgba(0, 0, 0, 0.9);
+            transform: translateY(-2px);
+        }
+
+        .paragraph-text {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .placeholder {
+            color: rgba(255, 255, 255, 0.6);
+            text-align: center;
+            font-style: italic;
+            padding: 40px 20px;
+        }
+
+        audio, video {
+            width: 100%;
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        img {
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .status {
+            text-align: center;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            background: rgba(0, 0, 0, 0.2);
+            font-weight: 500;
+        }
+
+        .progress-container {
+            margin-top: 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+        }
+
+        .progress-bar {
+            height: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .progress {
+            height: 100%;
+            background: linear-gradient(90deg, #FF416C, #FF4B2B);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            margin-top: 40px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        /* 自定义滚动条 */
+        .media-content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .media-content::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 4px;
+        }
+
+        .media-content::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+        }
+
+        .media-content::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        @media (max-width: 768px) {
+            .controls {
+                flex-direction: column;
+            }
+
+            button {
+                width: 100%;
+            }
+
+            .media-section {
+                grid-template-columns: 1fr;
+            }
+
+            .media-card {
+                min-width: 100%;
+            }
+
+            .audio-img-container {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>多媒体内容生成器</h1>
+        <p class="subtitle">将文字段落转换为语音、图片和视频</p>
+    </header>
+
+    <section class="input-section">
+        <div class="input-container">
+            <label for="text-input">输入您想要转换的文字段落（每个段落请用空行分隔）：</label>
+            <textarea id="text-input" placeholder="请输入您想要转换为语音、图片或视频的文字内容...
+
+例如：
+第一段文字内容...
+
+第二段文字内容...
+
+第三段文字内容..."></textarea>
+
+            <div class="controls">
+                <div>
+                    <button id="generate-btn">生成所有媒体</button>
+                </div>
+                <div class="api-status">
+                    后端状态: <span id="api-status">等待输入</span>
+                </div>
+            </div>
+
+            <div class="progress-container">
+                <div class="progress-text">
+                    <span>处理进度:</span>
+                    <span id="progress-text">0/0</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress" id="progress-bar"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="media-section">
+        <div class="media-card">
+            <h2 class="media-title">段落内容与图片</h2>
+            <div class="media-content" id="audio-image-content">
+                <div class="placeholder" id="audio-image-placeholder">
+                    生成的段落内容和图片将在这里按顺序显示
+                </div>
+                <!-- 媒体项将通过JavaScript动态添加 -->
+            </div>
+        </div>
+
+        <div class="media-card">
+            <h2 class="media-title">生成视频</h2>
+            <div class="media-content" id="video-content">
+                <div class="placeholder" id="video-placeholder">
+                    生成的视频将在这里按段落顺序显示
+                </div>
+                <!-- 视频项将通过JavaScript动态添加 -->
+            </div>
+        </div>
+    </section>
+
+    <div class="status" id="status-message">
+        准备好将您的文字段落转换为多媒体内容
+    </div>
+
+    <footer>
+        <p>多媒体内容生成器 &copy; 2025 | 设计用于演示文字到媒体转换功能</p>
+    </footer>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const textInput = document.getElementById('text-input');
+        const generateBtn = document.getElementById('generate-btn');
+        const audioImageContent = document.getElementById('audio-image-content');
+        const videoContent = document.getElementById('video-content');
+        const audioImagePlaceholder = document.getElementById('audio-image-placeholder');
+        const videoPlaceholder = document.getElementById('video-placeholder');
+        const statusMessage = document.getElementById('status-message');
+        const apiStatus = document.getElementById('api-status');
+        const progressBar = document.getElementById('progress-bar');
+        const progressText = document.getElementById('progress-text');
+
+        // 模拟后端API端点
+        const API_ENDPOINT = 'https://example.com/api/generate-media';
+        const VIDEO_API_ENDPOINT = 'https://example.com/api/generate-video';
+
+        // 存储段落数据
+        let paragraphsData = [];
+
+        // 生成按钮点击事件
+        generateBtn.addEventListener('click', async function() {
+            const text = textInput.value.trim();
+
+            if (!text) {
+                statusMessage.textContent = '请输入一些文字内容';
+                statusMessage.style.background = 'rgba(255, 0, 0, 0.2)';
+                return;
+            }
+
+            // 分割文本为段落
+            const paragraphs = text.split(/\n\s*\n/).filter(p => p.trim().length > 0);
+
+            if (paragraphs.length === 0) {
+                statusMessage.textContent = '请使用空行分隔段落';
+                statusMessage.style.background = 'rgba(255, 0, 0, 0.2)';
+                return;
+            }
+
+            // 清空现有内容
+            audioImageContent.innerHTML = '';
+            videoContent.innerHTML = '';
+
+            // 隐藏占位符
+            audioImagePlaceholder.style.display = 'none';
+            videoPlaceholder.style.display = 'none';
+
+            // 更新状态
+            statusMessage.textContent = `正在处理 ${paragraphs.length} 个段落，请稍候...`;
+            statusMessage.style.background = 'rgba(255, 165, 0, 0.3)';
+            apiStatus.textContent = '处理中';
+            apiStatus.style.color = '#FFA500';
+
+            // 禁用生成按钮
+            generateBtn.disabled = true;
+
+            // 初始化进度条
+            progressBar.style.width = '0%';
+            progressText.textContent = `0/${paragraphs.length}`;
+
+            // 重置段落数据
+            paragraphsData = [];
+
+            // 依次发送每个段落到后端
+            for (let i = 0; i < paragraphs.length; i++) {
+                const paragraph = paragraphs[i];
+
+                // 更新进度
+                const progress = ((i + 1) / paragraphs.length) * 100;
+                progressBar.style.width = `${progress}%`;
+                progressText.textContent = `${i + 1}/${paragraphs.length}`;
+
+                // 发送请求到后端
+                const result = await sendRequestToBackend(paragraph, i + 1);
+                paragraphsData.push(result);
+
+                // 模拟处理延迟
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+
+            // 更新状态
+            statusMessage.textContent = `所有段落处理完成！共处理 ${paragraphs.length} 个段落`;
+            statusMessage.style.background = 'rgba(0, 255, 0, 0.2)';
+            apiStatus.textContent = '完成';
+            apiStatus.style.color = '#00FF00';
+
+            // 恢复生成按钮
+            generateBtn.disabled = false;
+        });
+
+        // 模拟发送请求到后端
+        function sendRequestToBackend(text, sequence) {
+            return new Promise((resolve) => {
+                // 在实际应用中，这里应该是真实的HTTP请求
+                // 这里使用setTimeout模拟网络延迟
+                setTimeout(() => {
+                    // 模拟成功响应
+                    const response = {
+                        sequence: sequence,
+                        audio: `https://example.com/audio/sample${sequence}.mp3`,
+                        image: `https://picsum.photos/300/200?random=${sequence}`,
+                        text: text
+                    };
+
+                    // 处理后端响应
+                    handleBackendResponse(response);
+                    resolve(response);
+                }, 1500);
+            });
+        }
+
+        // 处理后端响应
+        function handleBackendResponse(data) {
+            // 添加音频和图片项
+            const audioImageItem = createAudioImageItem(data);
+            audioImageContent.appendChild(audioImageItem);
+
+            // 滚动到最新内容
+            audioImageContent.scrollTop = audioImageContent.scrollHeight;
+        }
+
+        // 创建音频和图片项
+        function createAudioImageItem(item) {
+            const mediaItem = document.createElement('div');
+            mediaItem.className = 'media-item';
+            mediaItem.innerHTML = `
+                    <div class="item-header">
+                        <div class="item-title">段落 ${item.sequence}</div>
+                        <div class="item-sequence">${item.sequence}</div>
+                    </div>
+                    <div class="paragraph-text">${item.text}</div>
+                    <div class="audio-img-container">
+                        <div class="audio-container">
+                            <audio id="audio-${item.sequence}" controls>
+                                <source src="${item.audio}" type="audio/mpeg">
+                                您的浏览器不支持音频元素。
+                            </audio>
+                        </div>
+                        <div class="img-container">
+                            <div class="img-with-buttons">
+                                <img src="${item.image}" alt="段落 ${item.sequence} 的图片">
+                                <div class="img-buttons">
+                                    <button class="img-btn play-audio-btn" data-sequence="${item.sequence}">播放声音</button>
+                                    <button class="img-btn generate-video-btn" data-sequence="${item.sequence}" data-text="${item.text}">生成视频</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+            // 添加按钮事件监听
+            const playAudioBtn = mediaItem.querySelector('.play-audio-btn');
+            const generateVideoBtn = mediaItem.querySelector('.generate-video-btn');
+
+            playAudioBtn.addEventListener('click', function() {
+                const sequence = this.getAttribute('data-sequence');
+                const audioElement = document.getElementById(`audio-${sequence}`);
+                if (audioElement) {
+                    audioElement.play();
+                }
+            });
+
+            generateVideoBtn.addEventListener('click', function() {
+                const sequence = this.getAttribute('data-sequence');
+                const text = this.getAttribute('data-text');
+                generateVideoForParagraph(sequence, text);
+            });
+
+            return mediaItem;
+        }
+
+        // 为段落生成视频
+        function generateVideoForParagraph(sequence, text) {
+            // 更新按钮状态为加载中
+            const generateVideoBtn = document.querySelector(`.generate-video-btn[data-sequence="${sequence}"]`);
+            const originalText = generateVideoBtn.textContent;
+            generateVideoBtn.innerHTML = '<span class="loading"></span> 生成中...';
+            generateVideoBtn.disabled = true;
+
+            // 更新状态
+            statusMessage.textContent = `正在为段落 ${sequence} 生成视频...`;
+            statusMessage.style.background = 'rgba(255, 165, 0, 0.3)';
+            apiStatus.textContent = '生成视频中';
+            apiStatus.style.color = '#FFA500';
+
+            // 发送请求到后端生成视频
+            sendVideoRequestToBackend(text, sequence)
+                .then(videoData => {
+                    // 恢复按钮状态
+                    generateVideoBtn.textContent = originalText;
+                    generateVideoBtn.disabled = false;
+
+                    // 更新状态
+                    statusMessage.textContent = `段落 ${sequence} 的视频生成成功！`;
+                    statusMessage.style.background = 'rgba(0, 255, 0, 0.2)';
+                    apiStatus.textContent = '完成';
+                    apiStatus.style.color = '#00FF00';
+
+                    // 创建或更新视频项
+                    createOrUpdateVideoItem(videoData);
+                })
+                .catch(error => {
+                    // 恢复按钮状态
+                    generateVideoBtn.textContent = originalText;
+                    generateVideoBtn.disabled = false;
+
+                    // 更新状态
+                    statusMessage.textContent = `生成视频时出错: ${error.message}`;
+                    statusMessage.style.background = 'rgba(255, 0, 0, 0.2)';
+                    apiStatus.textContent = '错误';
+                    apiStatus.style.color = '#FF0000';
+                });
+        }
+
+        // 模拟发送视频生成请求到后端
+        function sendVideoRequestToBackend(text, sequence) {
+            return new Promise((resolve) => {
+                // 在实际应用中，这里应该是真实的HTTP请求
+                // 这里使用setTimeout模拟网络延迟
+                setTimeout(() => {
+                    // 模拟成功响应
+                    const response = {
+                        sequence: sequence,
+                        video: `https://example.com/video/sample${sequence}.mp4`,
+                        text: text
+                    };
+                    resolve(response);
+                }, 3000);
+            });
+        }
+
+        // 创建或更新视频项
+        function createOrUpdateVideoItem(videoData) {
+            // 检查是否已存在该序列号的视频项
+            const existingVideoItem = document.getElementById(`video-item-${videoData.sequence}`);
+
+            if (existingVideoItem) {
+                // 更新现有视频项
+                const videoElement = existingVideoItem.querySelector('video');
+                videoElement.src = videoData.video;
+            } else {
+                // 创建新的视频项
+                const videoItem = createVideoItem(videoData);
+                videoContent.appendChild(videoItem);
+
+                // 隐藏占位符
+                videoPlaceholder.style.display = 'none';
+
+                // 滚动到最新内容
+                videoContent.scrollTop = videoContent.scrollHeight;
+            }
+        }
+
+        // 创建视频项
+        function createVideoItem(item) {
+            const videoItem = document.createElement('div');
+            videoItem.className = 'media-item';
+            videoItem.id = `video-item-${item.sequence}`;
+            videoItem.innerHTML = `
+                    <div class="item-header">
+                        <div class="item-title">段落 ${item.sequence} 视频</div>
+                        <div class="item-sequence">${item.sequence}</div>
+                    </div>
+                    <div class="paragraph-text">${item.text}</div>
+                    <video controls>
+                        <source src="${item.video}" type="video/mp4">
+                        您的浏览器不支持视频元素。
+                    </video>
+                    <div class="item-actions">
+                        <button class="item-btn">分享</button>
+                        <button class="item-btn">下载</button>
+                    </div>
+                `;
+            return videoItem;
+        }
+
+        // 模拟错误处理
+        function handleError(error) {
+            statusMessage.textContent = '生成媒体内容时出错: ' + error.message;
+            statusMessage.style.background = 'rgba(255, 0, 0, 0.2)';
+            apiStatus.textContent = '错误';
+            apiStatus.style.color = '#FF0000';
+            generateBtn.disabled = false;
+        }
+    });
+</script>
+</body>
+</html>
