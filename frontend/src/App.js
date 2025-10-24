@@ -50,9 +50,7 @@ function App() {
       <main className="App-main">
         {!showContent && <InputForm onTaskCreated={handleTaskCreated} />}
         
-        {showContent && paragraphs && (
-          <ContentDisplay taskId={taskId} paragraphs={paragraphs} />
-        )}
+        <ContentDisplay taskId={taskId} paragraphs={paragraphs} />
         
         {taskCompleted && videoUrl && (
           <VideoPlayer 
