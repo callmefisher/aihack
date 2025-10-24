@@ -1,0 +1,9 @@
+{
+  "max_scene_length": 500,
+  "image_provider": "stability",
+  "image_api_key": "YOUR_STABILITY_AI_KEY",
+  "tts_provider": "azure",
+  "tts_api_key": "YOUR_AZURE_TTS_KEY",
+  "scene_duration": 5.0,
+  "fps": 30
+}
