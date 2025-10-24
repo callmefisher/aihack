@@ -36,93 +36,45 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap })
   }, [paragraphs, taskId]);
 
   useEffect(() => {
-    const handleImageResult = (data) => {
-      console.log('ContentDisplay收到图片结果:', data);
-
-      if (data.data && data.data.data && Array.isArray(data.data.data)) {
-        try {
-          const imageUrls = data.data.data.map((item, index) => {
-            const base64Image = item.b64_json;
-            const binaryString = atob(base64Image);
-            const bytes = new Uint8Array(binaryString.length);
-            for (let i = 0; i < binaryString.length; i++) {
-              bytes[i] = binaryString.charCodeAt(i);
-            }
-
-            const blob = new Blob([bytes], { type: 'image/png' });
-            const imageUrl = URL.createObjectURL(blob);
-
-            console.log(`图片 ${index + 1} URL生成:`, imageUrl);
-            return imageUrl;
-          });
-
-          const paragraphNumber = data.paragraph_number;
-          if (paragraphNumber !== undefined) {
-            const itemIndex = paragraphNumber - 1;
-
-            setItems(prev => {
-              const updated = [...prev];
-              if (updated[itemIndex]) {
-                updated[itemIndex] = {
-                  ...updated[itemIndex],
-                  images: imageUrls,
-                  loadingImage: false,
-                  progress: 100
-                };
-              }
-              return updated;
-            });
-
-            console.log(`段落 ${paragraphNumber} 的图片已更新到UI`);
-          }
-        } catch (error) {
-          console.error('解码图片失败:', error);
-        }
-      }
-    };
-
-    if (useWebSocket && wsService.isConnected()) {
-      wsService.on('image_result', handleImageResult);
-
-      return () => {
-        wsService.off('image_result', handleImageResult);
-      };
-    }
-  }, [useWebSocket]);
-  useEffect(() => {
     const handleImageResult = (payload) => {
+      console.log('ContentDisplay收到图片结果:', payload);
+      
       const { data, paragraph_number } = payload;
       
       if (data && data.data && Array.isArray(data.data)) {
-        const imageUrls = data.data.map(img => {
-          const base64Data = img.b64_json;
-          return `data:image/${data.output_format || 'png'};base64,${base64Data}`;
-        });
-        
-        setItems(prev => {
-          const updated = [...prev];
-          const index = paragraph_number - 1;
-          if (index >= 0 && index < updated.length) {
-            updated[index] = {
-              ...updated[index],
-              images: imageUrls,
-              loadingImage: false,
-              progress: 100
-            };
-          }
-          return updated;
-        });
-        
-        setTimeout(() => {
+        try {
+          const imageUrls = data.data.map(img => {
+            const base64Data = img.b64_json;
+            return `data:image/${data.output_format || 'png'};base64,${base64Data}`;
+          });
+          
           setItems(prev => {
             const updated = [...prev];
             const index = paragraph_number - 1;
             if (index >= 0 && index < updated.length) {
-              updated[index] = { ...updated[index], progress: 0 };
+              updated[index] = {
+                ...updated[index],
+                images: imageUrls,
+                loadingImage: false,
+                progress: 100
+              };
             }
             return updated;
           });
-        }, 1000);
+          
+          setTimeout(() => {
+            setItems(prev => {
+              const updated = [...prev];
+              const index = paragraph_number - 1;
+              if (index >= 0 && index < updated.length) {
+                updated[index] = { ...updated[index], progress: 0 };
+              }
+              return updated;
+            });
+          }, 1000);
+        } catch (error) {
+          console.error('处理图片数据失败:', error);
+        }
       }
     };
     
