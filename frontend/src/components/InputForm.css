@@ -157,3 +157,97 @@
   font-size: 0.9rem;
   font-weight: 600;
 }
+
+/* WebSocket状态样式 */
+.ws-status {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 15px;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+}
+
+.ws-status label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #fff;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.ws-status input[type="checkbox"] {
+  cursor: pointer;
+}
+
+.status-indicator {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.status-indicator.connected {
+  background: rgba(76, 175, 80, 0.3);
+  color: #4caf50;
+}
+
+.status-indicator.disconnected {
+  background: rgba(244, 67, 54, 0.3);
+  color: #f44336;
+}
+
+/* 流式消息样式 */
+.streaming-messages {
+  margin-bottom: 20px;
+  padding: 15px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.streaming-messages h3 {
+  color: #fff;
+  font-size: 1rem;
+  margin-bottom: 10px;
+}
+
+.streaming-messages .message {
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  color: #fff;
+}
+
+.streaming-messages .message-status {
+  background: rgba(33, 150, 243, 0.3);
+}
+
+.streaming-messages .message-tts_result {
+  background: rgba(76, 175, 80, 0.3);
+}
+
+.streaming-messages .message-error {
+  background: rgba(244, 67, 54, 0.3);
+}
+
+.streaming-messages .message-complete {
+  background: rgba(156, 39, 176, 0.3);
+}
+
+.streaming-messages::-webkit-scrollbar {
+  width: 6px;
+}
+
+.streaming-messages::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.streaming-messages::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+}
