@@ -11,20 +11,24 @@ class TextToSpeech:
         self.secret_key = secret_key or os.getenv('BAIDU_SECRET_KEY')
     
     def generate_speech(self, text: str, output_path: str, language: str = "zh-CN") -> str:
-        if self.provider == "baidu":
+        if self.provider == "azure":
+            if not self.api_key:
+                print(f"⚠️ 警告: 未配置Azure TTS API密钥，将生成静音音频")
+                return self._generate_silence(output_path, duration=len(text) * 0.2)
+            return self._generate_azure_tts(text, output_path, language)
+        
+        elif self.provider == "openai":
+            if not self.api_key:
+                print(f"⚠️ 警告: 未配置OpenAI TTS API密钥，将生成静音音频")
+                return self._generate_silence(output_path, duration=len(text) * 0.2)
+            return self._generate_openai_tts(text, output_path)
+        
+        elif self.provider == "baidu":
             if not self.api_key or not self.secret_key:
                 print(f"⚠️ 警告: 未配置百度TTS API密钥，将生成静音音频")
                 return self._generate_silence(output_path, duration=len(text) * 0.2)
-        elif not self.api_key:
-            print(f"⚠️ 警告: 未配置TTS API密钥，将生成静音音频")
-            return self._generate_silence(output_path, duration=len(text) * 0.2)
-        
-        if self.provider == "azure":
-            return self._generate_azure_tts(text, output_path, language)
-        elif self.provider == "openai":
-            return self._generate_openai_tts(text, output_path)
-        elif self.provider == "baidu":
             return self._generate_baidu_tts(text, output_path, language)
+        
         else:
             raise ValueError(f"不支持的TTS提供商: {self.provider}")
     
