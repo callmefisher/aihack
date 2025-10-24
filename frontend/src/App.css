@@ -4,12 +4,14 @@
   flex-direction: column;
   background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
   color: #fff;
+  padding: 20px;
 }
 
 .App-header {
   text-align: center;
   padding: 20px;
   margin: 20px;
+  margin-bottom: 40px;
   background: rgba(0, 0, 0, 0.3);
   border-radius: 15px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
@@ -55,7 +57,7 @@
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  padding: 2rem;
+  padding: 0;
 }
 
 .App-footer {
