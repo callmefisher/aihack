@@ -98,7 +98,7 @@ class QiniuImageService:
             "size": "1024x1024"
         }
         
-        async with httpx.AsyncClient(timeout=60.0) as client:
+        async with httpx.AsyncClient(timeout=120.0) as client:
             response = await client.post(
                 self.api_url,
                 headers=headers,
@@ -150,56 +150,61 @@ async def websocket_endpoint(websocket: WebSocket):
                         "paragraph_number": paragraph_number
                     })
                     
-                    try:
-                        # 并行调用七牛云TTS API和图片生成API
-                        tts_task = qiniu_tts.text_to_speech(text)
-                        image_task = qiniu_image.text_to_images(text)
-                        
-                        results = await asyncio.gather(tts_task, image_task, return_exceptions=True)
-                        
-                        tts_result = results[0]
-                        image_result = results[1]
-                        
-                        # 发送TTS结果
-                        if isinstance(tts_result, Exception):
-                            await websocket.send_json({
-                                "type": "error",
-                                "message": f"TTS处理失败: {str(tts_result)}",
-                                "paragraph_number": paragraph_number
-                            })
-                        else:
-                            await websocket.send_json({
-                                "type": "tts_result",
-                                "data": tts_result,
-                                "text": text,
-                                "paragraph_number": paragraph_number
-                            })
-                        
-                        # 发送图片生成结果
-                        if isinstance(image_result, Exception):
-                            await websocket.send_json({
-                                "type": "error",
-                                "message": f"图片生成失败: {str(image_result)}",
-                                "paragraph_number": paragraph_number
-                            })
-                        else:
+                    # 异步非阻塞方式处理图片生成
+                    async def generate_images_background():
+                        """后台生成图片，不阻塞TTS返回"""
+                        try:
+                            image_result = await qiniu_image.text_to_images(text)
                             await websocket.send_json({
                                 "type": "image_result",
                                 "data": image_result,
                                 "text": text,
                                 "paragraph_number": paragraph_number
                             })
+                        except httpx.TimeoutException as e:
+                            await websocket.send_json({
+                                "type": "error",
+                                "message": f"图片生成超时: {str(e)}",
+                                "paragraph_number": paragraph_number
+                            })
+                        except httpx.HTTPError as e:
+                            await websocket.send_json({
+                                "type": "error",
+                                "message": f"图片生成失败: {str(e)}",
+                                "paragraph_number": paragraph_number
+                            })
+                        except Exception as e:
+                            await websocket.send_json({
+                                "type": "error",
+                                "message": f"图片生成失败: {str(e)}",
+                                "paragraph_number": paragraph_number
+                            })
+                    
+                    # 启动后台图片生成任务（不等待完成）
+                    asyncio.create_task(generate_images_background())
+                    
+                    try:
+                        # 立即处理TTS，不等待图片生成
+                        tts_result = await qiniu_tts.text_to_speech(text)
+                        
+                        # 立即发送TTS结果
+                        await websocket.send_json({
+                            "type": "tts_result",
+                            "data": tts_result,
+                            "text": text,
+                            "paragraph_number": paragraph_number
+                        })
                         
                     except httpx.HTTPError as e:
                         await websocket.send_json({
                             "type": "error",
-                            "message": f"API调用失败: {str(e)}",
+                            "message": f"TTS处理失败: {str(e)}",
                             "paragraph_number": paragraph_number
                         })
                     except Exception as e:
                         await websocket.send_json({
                             "type": "error",
-                            "message": f"处理失败: {str(e)}",
+                            "message": f"TTS处理失败: {str(e)}",
                             "paragraph_number": paragraph_number
                         })
                 
