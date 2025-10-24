@@ -35,6 +35,52 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap })
     }
   }, [paragraphs, taskId]);
 
+  useEffect(() => {
+    const handleImageResult = (payload) => {
+      const { data, paragraph_number } = payload;
+      
+      if (data && data.data && Array.isArray(data.data)) {
+        const imageUrls = data.data.map(img => {
+          const base64Data = img.b64_json;
+          return `data:image/${data.output_format || 'png'};base64,${base64Data}`;
+        });
+        
+        setItems(prev => {
+          const updated = [...prev];
+          const index = paragraph_number - 1;
+          if (index >= 0 && index < updated.length) {
+            updated[index] = {
+              ...updated[index],
+              images: imageUrls,
+              loadingImage: false,
+              progress: 100
+            };
+          }
+          return updated;
+        });
+        
+        setTimeout(() => {
+          setItems(prev => {
+            const updated = [...prev];
+            const index = paragraph_number - 1;
+            if (index >= 0 && index < updated.length) {
+              updated[index] = { ...updated[index], progress: 0 };
+            }
+            return updated;
+          });
+        }, 1000);
+      }
+    };
+    
+    if (useWebSocket && wsService.isConnected()) {
+      wsService.on('image_result', handleImageResult);
+      
+      return () => {
+        wsService.off('image_result', handleImageResult);
+      };
+    }
+  }, [useWebSocket]);
+
   const processTestMode = (itemsList) => {
     const updatedItems = itemsList.map((item, index) => ({
       ...item,
@@ -46,8 +92,16 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap })
   };
 
   const processItemsSequentially = async (itemsList) => {
-    for (let i = 0; i < itemsList.length; i++) {
-      await generateImageForItem(i);
+    if (useWebSocket && wsService.isConnected()) {
+      setItems(prev => prev.map(item => ({
+        ...item,
+        loadingImage: true,
+        progress: 10
+      })));
+    } else {
+      for (let i = 0; i < itemsList.length; i++) {
+        await generateImageForItem(i);
+      }
     }
   };
 
