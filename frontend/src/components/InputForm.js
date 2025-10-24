@@ -126,9 +126,18 @@ function InputForm({ onTaskCreated, onAudioCache }) {
           setProgress(100);
           onTaskCreated(response.task_id, text);
         } else if (useWebSocket && wsConnected) {
-          // WebSocket模式 - 不调用HTTP API
+          // WebSocket模式 - 分段发送TTS请求
+          setProgress(30);
+          
+          // 分割段落
+          const paragraphs = textInput.split(/\n\n+/).filter(p => p.trim().length > 0);
+          
+          // 为每个段落发送TTS请求
+          for (let i = 0; i < paragraphs.length; i++) {
+            wsService.sendText(paragraphs[i], i + 1);
+          }
+          
           setProgress(50);
-          wsService.sendText(textInput);
           // WebSocket会通过事件回调处理响应
           response = { task_id: `ws-${Date.now()}`, status: 'processing' };
           onTaskCreated(response.task_id, text);
