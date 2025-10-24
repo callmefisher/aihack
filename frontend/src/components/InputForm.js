@@ -3,7 +3,7 @@ import './InputForm.css';
 import { createTextTask, createURLTask } from '../services/api';
 import wsService from '../services/websocket';
 
-function InputForm({ onTaskCreated }) {
+function InputForm({ onTaskCreated, onAudioCache }) {
   const [inputType, setInputType] = useState('text');
   const [textInput, setTextInput] = useState('');
   const [urlInput, setUrlInput] = useState('');
@@ -52,6 +52,14 @@ function InputForm({ onTaskCreated }) {
             const blob = new Blob([bytes], { type: 'audio/mpeg' });
             const audioUrl = URL.createObjectURL(blob);
             
+            // 从数据中提取段落编号，如果没有则使用文本匹配
+            const paragraphNumber = data.paragraph_number;
+            
+            // 缓存音频URL到父组件
+            if (onAudioCache && paragraphNumber !== undefined) {
+              onAudioCache(paragraphNumber, audioUrl);
+            }
+            
             // 创建并播放音频
             const audio = new Audio(audioUrl);
             audio.play().then(() => {
@@ -61,10 +69,8 @@ function InputForm({ onTaskCreated }) {
               setError('音频播放失败: ' + error.message);
             });
             
-            // 清理URL对象（在音频播放结束后）
-            audio.onended = () => {
-              URL.revokeObjectURL(audioUrl);
-            };
+            // 注意：不再在音频结束后立即清理URL，因为需要缓存
+            // URL清理将由父组件管理
           } catch (error) {
             console.error('解码base64音频失败:', error);
             setError('解码音频失败: ' + error.message);

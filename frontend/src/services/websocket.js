@@ -73,12 +73,37 @@ class WebSocketService {
   /**
    * 发送文本进行TTS处理
    * @param {string} text - 要处理的文本
+   * @param {number} paragraphNumber - 段落编号
    */
-  sendText(text) {
+  sendText(text, paragraphNumber = null) {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       const message = {
         action: 'tts',
-        text: text
+        text: text,
+        paragraph_number: paragraphNumber
+      };
+      this.ws.send(JSON.stringify(message));
+    } else {
+      console.error('WebSocket未连接');
+      throw new Error('WebSocket未连接');
+    }
+  }
+
+  /**
+   * 发送视频生成请求
+   * @param {string} taskId - 任务ID
+   * @param {string} text - 文本内容
+   * @param {number} paragraphNumber - 段落编号
+   * @param {string} imageUrl - 图片URL
+   */
+  sendVideoRequest(taskId, text, paragraphNumber, imageUrl) {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      const message = {
+        action: 'video',
+        task_id: taskId,
+        text: text,
+        paragraph_number: paragraphNumber,
+        image_url: imageUrl
       };
       this.ws.send(JSON.stringify(message));
     } else {
@@ -100,6 +125,9 @@ class WebSocketService {
         break;
       case 'tts_result':
         this.emit('tts_result', payload);
+        break;
+      case 'video_result':
+        this.emit('video_result', payload);
         break;
       case 'error':
         this.emit('error', payload);

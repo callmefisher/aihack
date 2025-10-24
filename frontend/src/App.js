@@ -12,15 +12,25 @@ function App() {
   const [paragraphs, setParagraphs] = useState(null);
   const [showContent, setShowContent] = useState(false);
   const [progress, setProgress] = useState({ completed: 0, total: 0 });
+  const [audioCacheMap, setAudioCacheMap] = useState({});
 
   const handleTaskCreated = (id, text) => {
     setTaskId(id);
     setTaskCompleted(false);
     setVideoUrl(null);
+    setAudioCacheMap({});
     
     const splitParagraphs = text.split(/\n\n+/).filter(p => p.trim().length > 0);
     setParagraphs(splitParagraphs);
     setShowContent(true);
+  };
+
+  const handleAudioCache = (paragraphNumber, audioUrl) => {
+    setAudioCacheMap(prev => ({
+      ...prev,
+      [paragraphNumber]: audioUrl
+    }));
+    console.log(`缓存音频: 段落 ${paragraphNumber}`);
   };
 
   const handleTaskComplete = (url) => {
@@ -34,6 +44,16 @@ function App() {
     setVideoUrl(null);
     setParagraphs(null);
     setShowContent(false);
+    
+    // 清理缓存的音频URL
+    Object.values(audioCacheMap).forEach(url => {
+      try {
+        URL.revokeObjectURL(url);
+      } catch (e) {
+        console.error('清理URL失败:', e);
+      }
+    });
+    setAudioCacheMap({});
   };
 
   return (
@@ -49,7 +69,7 @@ function App() {
       </header>
 
       <main className="App-main">
-        <InputForm onTaskCreated={handleTaskCreated} />
+        <InputForm onTaskCreated={handleTaskCreated} onAudioCache={handleAudioCache} />
         
         {showContent && progress && (
           <div className="progress-container">
@@ -63,7 +83,7 @@ function App() {
           </div>
         )}
         
-        <ContentDisplay taskId={taskId} paragraphs={paragraphs} onProgressUpdate={setProgress} />
+        <ContentDisplay taskId={taskId} paragraphs={paragraphs} onProgressUpdate={setProgress} audioCacheMap={audioCacheMap} />
         
         {taskCompleted && videoUrl && (
           <VideoPlayer 

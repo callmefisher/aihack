@@ -72,23 +72,27 @@ async def websocket_endpoint(websocket: WebSocket):
                 message = json.loads(data)
                 text = message.get("text", "")
                 action = message.get("action", "tts")
+                paragraph_number = message.get("paragraph_number")
+                task_id = message.get("task_id")
+                image_url = message.get("image_url")
                 
-                if not text:
+                if not text and action != "video":
                     await websocket.send_json({
                         "type": "error",
                         "message": "文本内容不能为空"
                     })
                     continue
                 
-                # 发送处理开始消息
-                await websocket.send_json({
-                    "type": "status",
-                    "message": "开始处理文本...",
-                    "text": text
-                })
-                
                 # 处理TTS请求
                 if action == "tts":
+                    # 发送处理开始消息
+                    await websocket.send_json({
+                        "type": "status",
+                        "message": "开始处理TTS...",
+                        "text": text,
+                        "paragraph_number": paragraph_number
+                    })
+                    
                     try:
                         # 调用七牛云TTS API
                         tts_result = await qiniu_tts.text_to_speech(text)
@@ -97,18 +101,67 @@ async def websocket_endpoint(websocket: WebSocket):
                         await websocket.send_json({
                             "type": "tts_result",
                             "data": tts_result,
-                            "text": text
+                            "text": text,
+                            "paragraph_number": paragraph_number
                         })
                         
                     except httpx.HTTPError as e:
                         await websocket.send_json({
                             "type": "error",
-                            "message": f"TTS API调用失败: {str(e)}"
+                            "message": f"TTS API调用失败: {str(e)}",
+                            "paragraph_number": paragraph_number
                         })
                     except Exception as e:
                         await websocket.send_json({
                             "type": "error",
-                            "message": f"TTS处理失败: {str(e)}"
+                            "message": f"TTS处理失败: {str(e)}",
+                            "paragraph_number": paragraph_number
+                        })
+                
+                # 处理视频生成请求
+                elif action == "video":
+                    # 发送处理开始消息
+                    await websocket.send_json({
+                        "type": "status",
+                        "message": "开始生成视频...",
+                        "paragraph_number": paragraph_number
+                    })
+                    
+                    try:
+                        # 模拟视频生成过程
+                        output_dir = Path(f"output/{task_id}")
+                        output_dir.mkdir(parents=True, exist_ok=True)
+                        
+                        video_path = output_dir / f"video_{paragraph_number}.mp4"
+                        
+                        if not video_path.exists():
+                            # 下载示例视频
+                            async with httpx.AsyncClient(timeout=120.0) as client:
+                                response = await client.get("https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4")
+                                if response.status_code == 200:
+                                    with open(video_path, 'wb') as f:
+                                        f.write(response.content)
+                        
+                        video_url = f"/output/{task_id}/video_{paragraph_number}.mp4"
+                        
+                        # 发送视频生成结果
+                        await websocket.send_json({
+                            "type": "video_result",
+                            "video_url": video_url,
+                            "paragraph_number": paragraph_number
+                        })
+                        
+                    except httpx.HTTPError as e:
+                        await websocket.send_json({
+                            "type": "error",
+                            "message": f"视频生成失败: {str(e)}",
+                            "paragraph_number": paragraph_number
+                        })
+                    except Exception as e:
+                        await websocket.send_json({
+                            "type": "error",
+                            "message": f"视频生成失败: {str(e)}",
+                            "paragraph_number": paragraph_number
                         })
                 
                 # 发送完成消息
