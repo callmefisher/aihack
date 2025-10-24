@@ -99,11 +99,13 @@ class QiniuImageService:
         }
         
         async with httpx.AsyncClient(timeout=120.0) as client:
+            print(payload)
             response = await client.post(
                 self.api_url,
                 headers=headers,
                 json=payload
             )
+            print(response.json())
             response.raise_for_status()
             return response.json()
 
