@@ -3,16 +3,23 @@ import './App.css';
 import InputForm from './components/InputForm';
 import TaskStatus from './components/TaskStatus';
 import VideoPlayer from './components/VideoPlayer';
+import ContentDisplay from './components/ContentDisplay';
 
 function App() {
   const [taskId, setTaskId] = useState(null);
   const [taskCompleted, setTaskCompleted] = useState(false);
   const [videoUrl, setVideoUrl] = useState(null);
+  const [paragraphs, setParagraphs] = useState(null);
+  const [showContent, setShowContent] = useState(false);
 
-  const handleTaskCreated = (id) => {
+  const handleTaskCreated = (id, text) => {
     setTaskId(id);
     setTaskCompleted(false);
     setVideoUrl(null);
+    
+    const splitParagraphs = text.split(/\n\n+/).filter(p => p.trim().length > 0);
+    setParagraphs(splitParagraphs);
+    setShowContent(true);
   };
 
   const handleTaskComplete = (url) => {
@@ -24,6 +31,8 @@ function App() {
     setTaskId(null);
     setTaskCompleted(false);
     setVideoUrl(null);
+    setParagraphs(null);
+    setShowContent(false);
   };
 
   return (
@@ -31,17 +40,18 @@ function App() {
       <header className="App-header">
         <h1>📚 小说转动漫生成器</h1>
         <p>将您的小说文本转换为动漫风格的视频</p>
+        {showContent && (
+          <button className="reset-button" onClick={handleReset}>
+            🔄 重新开始
+          </button>
+        )}
       </header>
 
       <main className="App-main">
-        {!taskId && <InputForm onTaskCreated={handleTaskCreated} />}
+        {!showContent && <InputForm onTaskCreated={handleTaskCreated} />}
         
-        {taskId && !taskCompleted && (
-          <TaskStatus 
-            taskId={taskId} 
-            onComplete={handleTaskComplete}
-            onError={handleReset}
-          />
+        {showContent && paragraphs && (
+          <ContentDisplay taskId={taskId} paragraphs={paragraphs} />
         )}
         
         {taskCompleted && videoUrl && (
