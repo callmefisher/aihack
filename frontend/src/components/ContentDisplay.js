@@ -6,6 +6,8 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState({});
   const [audioPlaying, setAudioPlaying] = useState(null);
+  const [zoomedImage, setZoomedImage] = useState(null);
+  const [speechPlaying, setSpeechPlaying] = useState(null);
 
   useEffect(() => {
     if (paragraphs && paragraphs.length > 0) {
@@ -146,6 +148,39 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate }) {
     };
   };
 
+  const handleImageClick = (imageUrl) => {
+    setZoomedImage(imageUrl);
+  };
+
+  const handleCloseZoom = () => {
+    setZoomedImage(null);
+  };
+
+  const handlePlaySpeech = (text, index) => {
+    if (speechPlaying === index) {
+      window.speechSynthesis.cancel();
+      setSpeechPlaying(null);
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'zh-CN';
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+    
+    utterance.onend = () => {
+      setSpeechPlaying(null);
+    };
+    
+    utterance.onerror = () => {
+      setSpeechPlaying(null);
+    };
+    
+    setSpeechPlaying(index);
+    window.speechSynthesis.speak(utterance);
+  };
+
   const handleGenerateVideo = async (index) => {
     const item = items[index];
 
@@ -255,8 +290,20 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate }) {
                     </div>
                   ) : item.image ? (
                     <>
-                      <img src={item.image} alt={`Scene ${item.id}`} />
+                      <img 
+                        src={item.image} 
+                        alt={`Scene ${item.id}`} 
+                        onClick={() => handleImageClick(item.image)}
+                        style={{ cursor: 'pointer' }}
+                        title="点击放大图片"
+                      />
                       <div className="image-actions">
+                        <button
+                          className={`action-button ${speechPlaying === index ? 'playing' : ''}`}
+                          onClick={() => handlePlaySpeech(item.text, index)}
+                        >
+                          {speechPlaying === index ? '⏸️ 停止朗读' : '🔊 朗读段落'}
+                        </button>
                         <button
                           className={`action-button ${audioPlaying === index ? 'playing' : ''}`}
                           onClick={() => handlePlayAudio(index)}
@@ -315,6 +362,15 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate }) {
           </div>
         </div>
       </div>
+      
+      {zoomedImage && (
+        <div className="image-modal" onClick={handleCloseZoom}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close" onClick={handleCloseZoom}>✕</button>
+            <img src={zoomedImage} alt="Zoomed" />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
