@@ -126,6 +126,9 @@ class WebSocketService {
       case 'tts_result':
         this.emit('tts_result', payload);
         break;
+      case 'image_result':
+        this.emit('image_result', payload);
+        break;
       case 'video_result':
         this.emit('video_result', payload);
         break;
