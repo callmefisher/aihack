@@ -13,12 +13,14 @@ function App() {
   const [showContent, setShowContent] = useState(false);
   const [progress, setProgress] = useState({ completed: 0, total: 0 });
   const [audioCacheMap, setAudioCacheMap] = useState({});
+  const [useWebSocket, setUseWebSocket] = useState(true);
 
-  const handleTaskCreated = (id, text) => {
+  const handleTaskCreated = (id, text, isWebSocketMode) => {
     setTaskId(id);
     setTaskCompleted(false);
     setVideoUrl(null);
     setAudioCacheMap({});
+    setUseWebSocket(isWebSocketMode || false);
     
     const splitParagraphs = text.split(/\n\n+/).filter(p => p.trim().length > 0);
     setParagraphs(splitParagraphs);
@@ -83,7 +85,7 @@ function App() {
           </div>
         )}
         
-        <ContentDisplay taskId={taskId} paragraphs={paragraphs} onProgressUpdate={setProgress} audioCacheMap={audioCacheMap} />
+        <ContentDisplay taskId={taskId} paragraphs={paragraphs} onProgressUpdate={setProgress} audioCacheMap={audioCacheMap} useWebSocket={useWebSocket} />
         
         {taskCompleted && videoUrl && (
           <VideoPlayer 

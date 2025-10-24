@@ -3,14 +3,13 @@ import './ContentDisplay.css';
 import { generateImage, generateVideo, getAudio } from '../services/api';
 import wsService from '../services/websocket';
 
-function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap }) {
+function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap, useWebSocket }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState({});
   const [audioPlaying, setAudioPlaying] = useState(null);
   const [zoomedImage, setZoomedImage] = useState(null);
   const [speechPlaying, setSpeechPlaying] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState({});
-  const [useWebSocket, setUseWebSocket] = useState(true);
 
   useEffect(() => {
     if (paragraphs && paragraphs.length > 0) {
@@ -29,7 +28,8 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap })
       
       if (taskId === 'test-mode') {
         processTestMode(initialItems);
-      } else {
+      } else if (!useWebSocket) {
+        // 只在非WebSocket模式下自动生成图片
         processItemsSequentially(initialItems);
       }
     }
@@ -122,8 +122,8 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap })
     // 如果有audioUrl，使用它
     if (item.audioUrl) {
       playAudio(item.audioUrl, index);
-    } else {
-      // 否则请求音频（仅HTTP模式）
+    } else if (!useWebSocket) {
+      // 仅在HTTP模式下请求音频
       setItems(prev => {
         const updated = [...prev];
         updated[index] = { ...updated[index], loadingAudio: true };
@@ -148,6 +148,9 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap })
           return updated;
         });
       }
+    } else {
+      // WebSocket模式下，如果没有缓存，提示用户
+      console.warn(`WebSocket模式下没有找到段落 ${paragraphNumber} 的缓存音频`);
     }
   };
 
