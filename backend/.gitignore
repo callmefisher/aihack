@@ -3,13 +3,11 @@ __pycache__/
 *$py.class
 *.so
 .Python
-env/
 venv/
+env/
 ENV/
 .venv
-.env
+tasks/
 output/
-*.mp3
-*.wav
 *.log
-.DS_Store
+.env
