@@ -13,12 +13,14 @@ function App() {
   const [showContent, setShowContent] = useState(false);
   const [progress, setProgress] = useState({ completed: 0, total: 0 });
   const [audioCacheMap, setAudioCacheMap] = useState({});
+  const [videoCacheMap, setVideoCacheMap] = useState({});
 
   const handleTaskCreated = (id, text) => {
     setTaskId(id);
     setTaskCompleted(false);
     setVideoUrl(null);
     setAudioCacheMap({});
+    setVideoCacheMap({});
     
     const splitParagraphs = text.split(/\n\n+/).filter(p => p.trim().length > 0);
     setParagraphs(splitParagraphs);
@@ -45,7 +47,6 @@ function App() {
     setParagraphs(null);
     setShowContent(false);
     
-    // 清理缓存的音频URL
     Object.values(audioCacheMap).forEach(url => {
       try {
         URL.revokeObjectURL(url);
@@ -54,6 +55,7 @@ function App() {
       }
     });
     setAudioCacheMap({});
+    setVideoCacheMap({});
   };
 
   return (

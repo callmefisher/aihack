@@ -7,10 +7,12 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap })
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState({});
   const [audioPlaying, setAudioPlaying] = useState(null);
+  const [currentAudio, setCurrentAudio] = useState(null);
   const [zoomedImage, setZoomedImage] = useState(null);
   const [speechPlaying, setSpeechPlaying] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState({});
   const [useWebSocket, setUseWebSocket] = useState(true);
+  const [videoCacheMap, setVideoCacheMap] = useState({});
 
   useEffect(() => {
     if (paragraphs && paragraphs.length > 0) {
@@ -192,22 +194,28 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap })
     const paragraphNumber = index + 1;
     
     if (audioPlaying === index) {
+      if (currentAudio) {
+        currentAudio.pause();
+        setCurrentAudio(null);
+      }
       setAudioPlaying(null);
       return;
     }
 
-    // 先检查缓存
+    if (currentAudio) {
+      currentAudio.pause();
+      setCurrentAudio(null);
+    }
+
     if (audioCacheMap && audioCacheMap[paragraphNumber]) {
       console.log(`使用缓存的音频: 段落 ${paragraphNumber}`);
       playAudio(audioCacheMap[paragraphNumber], index);
       return;
     }
 
-    // 如果有audioUrl，使用它
     if (item.audioUrl) {
       playAudio(item.audioUrl, index);
     } else {
-      // 否则请求音频（仅HTTP模式）
       setItems(prev => {
         const updated = [...prev];
         updated[index] = { ...updated[index], loadingAudio: true };
@@ -239,9 +247,11 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap })
     const audio = new Audio(url);
     audio.play();
     setAudioPlaying(index);
+    setCurrentAudio(audio);
     
     audio.onended = () => {
       setAudioPlaying(null);
+      setCurrentAudio(null);
     };
   };
 
@@ -320,6 +330,19 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap })
     const item = items[index];
     const paragraphNumber = index + 1;
 
+    if (videoCacheMap[paragraphNumber]) {
+      console.log(`使用缓存的视频: 段落 ${paragraphNumber}`);
+      setItems(prev => {
+        const updated = [...prev];
+        updated[index] = {
+          ...updated[index],
+          video: videoCacheMap[paragraphNumber]
+        };
+        return updated;
+      });
+      return;
+    }
+
     setItems(prev => {
       const updated = [...prev];
       updated[index] = { ...updated[index], loadingVideo: true, progress: 0 };
@@ -339,15 +362,17 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap })
 
       const currentImage = item.images && item.images.length > 0 ? item.images[0] : null;
       
-      // 如果启用WebSocket且已连接，使用WebSocket
       if (useWebSocket && wsService.isConnected()) {
-        // 使用WebSocket生成视频
         wsService.sendVideoRequest(taskId, item.text, paragraphNumber, currentImage);
         
-        // 注册一次性的视频结果监听器
         const handleVideoResult = (data) => {
           if (data.paragraph_number === paragraphNumber) {
             clearInterval(progressInterval);
+            
+            setVideoCacheMap(prev => ({
+              ...prev,
+              [paragraphNumber]: data.video_url
+            }));
             
             setItems(prev => {
               const updated = [...prev];
@@ -368,17 +393,20 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap })
               });
             }, 1000);
             
-            // 移除监听器
             wsService.off('video_result', handleVideoResult);
           }
         };
         
         wsService.on('video_result', handleVideoResult);
       } else {
-        // 使用HTTP API
         const response = await generateVideo(taskId, item.text, paragraphNumber, currentImage);
         
         clearInterval(progressInterval);
+
+        setVideoCacheMap(prev => ({
+          ...prev,
+          [paragraphNumber]: response.video_url
+        }));
 
         setItems(prev => {
           const updated = [...prev];
@@ -529,7 +557,7 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap })
                     disabled={item.loadingAudio}
                   >
                     {item.loadingAudio ? '⏳' : audioPlaying === index ? '⏸️' : '🔊'} 
-                    {item.loadingAudio ? ' 加载中' : audioPlaying === index ? ' 暂停' : ' 播放声音'}
+                    {item.loadingAudio ? ' 加载中' : audioPlaying === index ? ' 暂停播放' : ' 播放语音'}
                   </button>
                   <button
                     className="action-button"
