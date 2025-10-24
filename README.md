@@ -99,6 +99,7 @@ python main.py my_novel.txt -c my_config.json
 支持的提供商：
 - `stability`: Stability AI (推荐)
 - `openai`: OpenAI DALL-E
+- `qiniu`: 七牛 AI 文字生成图片
 
 ### 语音合成
 
@@ -154,6 +155,12 @@ output/
 4. 将 API Key 填入配置文件的 `tts_api_key`
 5. 将 Secret Key 填入配置文件的 `baidu_secret_key`
 6. 将 `tts_provider` 设置为 `baidu`
+
+### 七牛 AI
+1. 访问 [七牛AI开放平台](https://ai.qiniu.com/)
+2. 创建应用并获取 API Key
+3. 将 API Key 填入配置文件的 `qiniu_api_key`
+4. 将 `image_provider` 设置为 `qiniu`
 
 ## ⚠️ 注意事项
 
