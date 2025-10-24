@@ -188,6 +188,28 @@ function ContentDisplay({ taskId, paragraphs }) {
   const totalItems = items.length;
   const overallProgress = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
 
+  if (!paragraphs || paragraphs.length === 0) {
+    return (
+      <div className="content-display">
+        <div className="sections-container">
+          <div className="section image-section">
+            <h2>📷 段落内容与图片</h2>
+            <div className="empty-state">
+              <p>等待输入内容后开始生成...</p>
+            </div>
+          </div>
+
+          <div className="section video-section">
+            <h2>🎥 生成视频</h2>
+            <div className="empty-state">
+              <p>等待输入内容后开始生成...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="content-display">
       <div className="progress-section">
