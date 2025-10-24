@@ -6,6 +6,7 @@
   "tts_api_key": "YOUR_AZURE_TTS_KEY",
   "baidu_app_id": "YOUR_BAIDU_APP_ID",
   "baidu_secret_key": "YOUR_BAIDU_SECRET_KEY",
+  "qiniu_api_key": "YOUR_QINIU_API_KEY",
   "scene_duration": 5.0,
   "fps": 30
 }

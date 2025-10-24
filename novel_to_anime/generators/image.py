@@ -15,6 +15,8 @@ class ImageGenerator:
             return self._generate_stability_ai(prompt, output_path)
         elif self.provider == "openai":
             return self._generate_openai_dalle(prompt, output_path)
+        elif self.provider == "qiniu":
+            return self._generate_qiniu_image(prompt, output_path)
         else:
             raise ValueError(f"不支持的图像生成器: {self.provider}")
     
@@ -84,3 +86,32 @@ class ImageGenerator:
             f.write(img_data)
         
         return output_path
+    
+    def _generate_qiniu_image(self, prompt: str, output_path: str) -> str:
+        import requests
+        import base64
+        
+        url = "https://openai.qiniu.com/v1/images/generations"
+        
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
+        }
+        
+        body = {
+            "model": "gemini-2.5-flash-image",
+            "prompt": f"anime style, high quality, {prompt}",
+            "n": 1,
+            "size": "1024x1024"
+        }
+        
+        response = requests.post(url, headers=headers, json=body)
+        
+        if response.status_code == 200:
+            data = response.json()
+            image_data = base64.b64decode(data['data'][0]['b64_json'])
+            with open(output_path, 'wb') as f:
+                f.write(image_data)
+            return output_path
+        else:
+            raise Exception(f"七牛图像生成失败: {response.text}")

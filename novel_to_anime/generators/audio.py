@@ -29,6 +29,12 @@ class TextToSpeech:
                 return self._generate_silence(output_path, duration=len(text) * 0.2)
             return self._generate_baidu_tts(text, output_path, language)
         
+        elif self.provider == "qiniu":
+            if not self.api_key:
+                print(f"⚠️ 警告: 未配置七牛TTS API密钥，将生成静音音频")
+                return self._generate_silence(output_path, duration=len(text) * 0.2)
+            return self._generate_qiniu_tts(text, output_path, language)
+        
         else:
             raise ValueError(f"不支持的TTS提供商: {self.provider}")
     
@@ -127,3 +133,41 @@ class TextToSpeech:
             f.write(tts_response.content)
         
         return output_path
+    
+    def _generate_qiniu_tts(self, text: str, output_path: str, language: str) -> str:
+        import requests
+        
+        url = "https://openai.qiniu.com/v1/voice/tts"
+        
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
+        }
+        
+        voice_map = {
+            "zh-CN": "zh_female_shuangkuaisisi_moon_bigtts",
+            "en-US": "en_female_bella_sky_bigtts"
+        }
+        voice_type = voice_map.get(language, "zh_female_shuangkuaisisi_moon_bigtts")
+        
+        body = {
+            "audio": {
+                "voice_type": voice_type,
+                "encoding": "mp3",
+                "speed_ratio": 1.0
+            },
+            "request": {
+                "text": text
+            }
+        }
+        
+        response = requests.post(url, headers=headers, json=body)
+        
+        if response.status_code == 200:
+            data = response.json()
+            audio_data = base64.b64decode(data['data'])
+            with open(output_path, 'wb') as f:
+                f.write(audio_data)
+            return output_path
+        else:
+            raise Exception(f"七牛TTS请求失败: {response.text}")
