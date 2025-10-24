@@ -184,29 +184,33 @@ function ContentDisplay({ taskId, paragraphs }) {
     }
   };
 
+  const completedItems = items.filter(item => item.image).length;
+  const totalItems = items.length;
+  const overallProgress = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
+
   return (
     <div className="content-display">
-      <div className="sections-container">
-        <div className="section text-section">
-          <h2>📝 文字段落</h2>
-          <div className="items-grid">
-            {items.map((item, index) => (
-              <div key={item.id} className="text-item">
-                <div className="item-number">{item.id}</div>
-                <div className="item-content">
-                  <p>{item.text}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+      <div className="progress-section">
+        <div className="progress-info">
+          <span>处理进度:</span>
+          <span>{completedItems}/{totalItems}</span>
         </div>
+        <div className="progress-bar">
+          <div className="progress-fill" style={{ width: `${overallProgress}%` }}></div>
+        </div>
+      </div>
 
+      <div className="sections-container">
         <div className="section image-section">
-          <h2>🖼️ 图片</h2>
+          <h2>段落内容与图片</h2>
           <div className="items-grid">
             {items.map((item, index) => (
               <div key={item.id} className="image-item">
-                <div className="item-number">{item.id}</div>
+                <div className="item-header">
+                  <div className="item-title">段落 {item.id}</div>
+                  <div className="item-number">{item.id}</div>
+                </div>
+                <div className="paragraph-text">{item.text}</div>
                 <div className="item-content">
                   {item.loadingImage ? (
                     <div className="loading-container">
@@ -226,7 +230,7 @@ function ContentDisplay({ taskId, paragraphs }) {
                           disabled={item.loadingAudio}
                         >
                           {item.loadingAudio ? '⏳' : audioPlaying === index ? '⏸️' : '🔊'} 
-                          {item.loadingAudio ? ' 加载中...' : audioPlaying === index ? ' 暂停' : ' 播放语音'}
+                          {item.loadingAudio ? ' 加载中' : audioPlaying === index ? ' 暂停' : ' 播放声音'}
                         </button>
                         <button
                           className="action-button"
@@ -252,11 +256,15 @@ function ContentDisplay({ taskId, paragraphs }) {
         </div>
 
         <div className="section video-section">
-          <h2>🎥 视频</h2>
+          <h2>生成视频</h2>
           <div className="items-grid">
             {items.map((item) => (
               <div key={item.id} className="video-item">
-                <div className="item-number">{item.id}</div>
+                <div className="item-header">
+                  <div className="item-title">段落 {item.id} 视频</div>
+                  <div className="item-number">{item.id}</div>
+                </div>
+                <div className="paragraph-text">{item.text}</div>
                 <div className="item-content">
                   {item.video ? (
                     <video controls>
@@ -265,7 +273,7 @@ function ContentDisplay({ taskId, paragraphs }) {
                     </video>
                   ) : (
                     <div className="placeholder">
-                      {item.loadingVideo ? '生成中...' : '暂无视频'}
+                      {item.loadingVideo ? '生成中...' : '生成的视频将在这里按段落顺序显示'}
                     </div>
                   )}
                 </div>
