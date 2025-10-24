@@ -37,38 +37,44 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap })
 
   useEffect(() => {
     const handleImageResult = (payload) => {
+      console.log('ContentDisplay收到图片结果:', payload);
+      
       const { data, paragraph_number } = payload;
       
       if (data && data.data && Array.isArray(data.data)) {
-        const imageUrls = data.data.map(img => {
-          const base64Data = img.b64_json;
-          return `data:image/${data.output_format || 'png'};base64,${base64Data}`;
-        });
-        
-        setItems(prev => {
-          const updated = [...prev];
-          const index = paragraph_number - 1;
-          if (index >= 0 && index < updated.length) {
-            updated[index] = {
-              ...updated[index],
-              images: imageUrls,
-              loadingImage: false,
-              progress: 100
-            };
-          }
-          return updated;
-        });
-        
-        setTimeout(() => {
+        try {
+          const imageUrls = data.data.map(img => {
+            const base64Data = img.b64_json;
+            return `data:image/${data.output_format || 'png'};base64,${base64Data}`;
+          });
+          
           setItems(prev => {
             const updated = [...prev];
             const index = paragraph_number - 1;
             if (index >= 0 && index < updated.length) {
-              updated[index] = { ...updated[index], progress: 0 };
+              updated[index] = {
+                ...updated[index],
+                images: imageUrls,
+                loadingImage: false,
+                progress: 100
+              };
             }
             return updated;
           });
-        }, 1000);
+          
+          setTimeout(() => {
+            setItems(prev => {
+              const updated = [...prev];
+              const index = paragraph_number - 1;
+              if (index >= 0 && index < updated.length) {
+                updated[index] = { ...updated[index], progress: 0 };
+              }
+              return updated;
+            });
+          }, 1000);
+        } catch (error) {
+          console.error('处理图片数据失败:', error);
+        }
       }
     };
     
