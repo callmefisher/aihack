@@ -51,7 +51,7 @@ function App() {
       <main className="App-main">
         <InputForm onTaskCreated={handleTaskCreated} />
         
-        {showContent && (
+        {showContent && progress && (
           <div className="progress-container">
             <div className="progress-info">
               <span>处理进度:</span>

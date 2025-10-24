@@ -57,7 +57,7 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate }) {
       const progressInterval = setInterval(() => {
         setItems(prev => {
           const updated = [...prev];
-          if (updated[index].progress < 90) {
+          if (updated[index] && updated[index].progress < 90) {
             updated[index] = { ...updated[index], progress: updated[index].progress + 10 };
           }
           return updated;
@@ -159,7 +159,7 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate }) {
       const progressInterval = setInterval(() => {
         setItems(prev => {
           const updated = [...prev];
-          if (updated[index].progress < 90) {
+          if (updated[index] && updated[index].progress < 90) {
             updated[index] = { ...updated[index], progress: updated[index].progress + 5 };
           }
           return updated;
