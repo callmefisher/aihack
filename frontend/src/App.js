@@ -49,7 +49,7 @@ function App() {
       </header>
 
       <main className="App-main">
-        {!showContent && <InputForm onTaskCreated={handleTaskCreated} />}
+        <InputForm onTaskCreated={handleTaskCreated} />
         
         {showContent && (
           <div className="progress-container">
