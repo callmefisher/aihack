@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import './ContentDisplay.css';
 import { generateImage, generateVideo, getAudio } from '../services/api';
+import wsService from '../services/websocket';
 
-function ContentDisplay({ taskId, paragraphs, onProgressUpdate }) {
+function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState({});
   const [audioPlaying, setAudioPlaying] = useState(null);
   const [zoomedImage, setZoomedImage] = useState(null);
   const [speechPlaying, setSpeechPlaying] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState({});
+  const [useWebSocket, setUseWebSocket] = useState(true);
 
   useEffect(() => {
     if (paragraphs && paragraphs.length > 0) {
@@ -103,15 +105,25 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate }) {
 
   const handlePlayAudio = async (index) => {
     const item = items[index];
+    const paragraphNumber = index + 1;
     
     if (audioPlaying === index) {
       setAudioPlaying(null);
       return;
     }
 
+    // 先检查缓存
+    if (audioCacheMap && audioCacheMap[paragraphNumber]) {
+      console.log(`使用缓存的音频: 段落 ${paragraphNumber}`);
+      playAudio(audioCacheMap[paragraphNumber], index);
+      return;
+    }
+
+    // 如果有audioUrl，使用它
     if (item.audioUrl) {
       playAudio(item.audioUrl, index);
     } else {
+      // 否则请求音频（仅HTTP模式）
       setItems(prev => {
         const updated = [...prev];
         updated[index] = { ...updated[index], loadingAudio: true };
@@ -119,7 +131,7 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate }) {
       });
 
       try {
-        const response = await getAudio(taskId, item.text, index + 1);
+        const response = await getAudio(taskId, item.text, paragraphNumber);
         
         setItems(prev => {
           const updated = [...prev];
@@ -129,7 +141,7 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate }) {
 
         playAudio(response.audio_url, index);
       } catch (error) {
-        console.error(`Error getting audio for item ${index + 1}:`, error);
+        console.error(`Error getting audio for item ${paragraphNumber}:`, error);
         setItems(prev => {
           const updated = [...prev];
           updated[index] = { ...updated[index], loadingAudio: false };
@@ -222,6 +234,7 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate }) {
 
   const handleGenerateVideo = async (index) => {
     const item = items[index];
+    const paragraphNumber = index + 1;
 
     setItems(prev => {
       const updated = [...prev];
@@ -241,31 +254,70 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate }) {
       }, 1000);
 
       const currentImage = item.images && item.images.length > 0 ? item.images[0] : null;
-      const response = await generateVideo(taskId, item.text, index + 1, currentImage);
       
-      clearInterval(progressInterval);
+      // 如果启用WebSocket且已连接，使用WebSocket
+      if (useWebSocket && wsService.isConnected()) {
+        // 使用WebSocket生成视频
+        wsService.sendVideoRequest(taskId, item.text, paragraphNumber, currentImage);
+        
+        // 注册一次性的视频结果监听器
+        const handleVideoResult = (data) => {
+          if (data.paragraph_number === paragraphNumber) {
+            clearInterval(progressInterval);
+            
+            setItems(prev => {
+              const updated = [...prev];
+              updated[index] = {
+                ...updated[index],
+                video: data.video_url,
+                loadingVideo: false,
+                progress: 100
+              };
+              return updated;
+            });
 
-      setItems(prev => {
-        const updated = [...prev];
-        updated[index] = {
-          ...updated[index],
-          video: response.video_url,
-          loadingVideo: false,
-          progress: 100
+            setTimeout(() => {
+              setItems(prev => {
+                const updated = [...prev];
+                updated[index] = { ...updated[index], progress: 0 };
+                return updated;
+              });
+            }, 1000);
+            
+            // 移除监听器
+            wsService.off('video_result', handleVideoResult);
+          }
         };
-        return updated;
-      });
+        
+        wsService.on('video_result', handleVideoResult);
+      } else {
+        // 使用HTTP API
+        const response = await generateVideo(taskId, item.text, paragraphNumber, currentImage);
+        
+        clearInterval(progressInterval);
 
-      setTimeout(() => {
         setItems(prev => {
           const updated = [...prev];
-          updated[index] = { ...updated[index], progress: 0 };
+          updated[index] = {
+            ...updated[index],
+            video: response.video_url,
+            loadingVideo: false,
+            progress: 100
+          };
           return updated;
         });
-      }, 1000);
+
+        setTimeout(() => {
+          setItems(prev => {
+            const updated = [...prev];
+            updated[index] = { ...updated[index], progress: 0 };
+            return updated;
+          });
+        }, 1000);
+      }
 
     } catch (error) {
-      console.error(`Error generating video for item ${index + 1}:`, error);
+      console.error(`Error generating video for item ${paragraphNumber}:`, error);
       setItems(prev => {
         const updated = [...prev];
         updated[index] = { ...updated[index], loadingVideo: false, progress: 0 };
