@@ -105,7 +105,8 @@ class QiniuImageService:
                 headers=headers,
                 json=payload
             )
-            print(response.json())
+            print(len(response.json()["data"]))
+            print(payload)
             response.raise_for_status()
             return response.json()
 
