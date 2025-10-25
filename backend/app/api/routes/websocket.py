@@ -393,7 +393,7 @@ class QiniuVideoService:
             response.raise_for_status()
             return response.json()
     
-    async def poll_video_status(self, video_id: str, max_attempts: int = 150, initial_interval: float = 1.0, max_interval: float = 5.0, progress_callback=None) -> Dict[str, Any]:
+    async def poll_video_status(self, video_id: str, max_attempts: int = 1500, initial_interval: float = 1.0, max_interval: float = 3.0, progress_callback=None) -> Dict[str, Any]:
         """
         周期性查询视频生成状态，直到完成（使用智能退避策略）
         
