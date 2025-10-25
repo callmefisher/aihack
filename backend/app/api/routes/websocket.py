@@ -39,16 +39,26 @@ class QiniuTTSService:
             混合后的base64编码音频数据
         """
         try:
-            # 检查背景音乐文件是否存在
+            # 检查背景音乐文件是否存在且可读
             if not self.background_music_path.exists():
-                print(f"背景音乐文件不存在: {self.background_music_path}，返回原始TTS音频")
+                print(f"背景音乐文件不存在: {self.background_music_path}，跳过ffmpeg混合，返回原始TTS音频")
                 return tts_audio_base64
+            
+            if not self.background_music_path.is_file():
+                print(f"背景音乐路径不是文件: {self.background_music_path}，跳过ffmpeg混合，返回原始TTS音频")
+                return tts_audio_base64
+            
+            if not os.access(self.background_music_path, os.R_OK):
+                print(f"背景音乐文件无读取权限: {self.background_music_path}，跳过ffmpeg混合，返回原始TTS音频")
+                return tts_audio_base64
+            
+            print(f"背景音乐文件检查通过: {self.background_music_path}")
             
             # 检查ffmpeg是否可用
             try:
                 subprocess.run(['ffmpeg', '-version'], capture_output=True, check=True)
-            except (subprocess.CalledProcessError, FileNotFoundError):
-                print("ffmpeg未安装或不可用，返回原始TTS音频")
+            except (subprocess.CalledProcessError, FileNotFoundError) as e:
+                print(f"ffmpeg未安装或不可用: {str(e)}，跳过ffmpeg混合，返回原始TTS音频")
                 return tts_audio_base64
             
             # 解码TTS音频
@@ -89,7 +99,9 @@ class QiniuTTSService:
                 )
                 
                 if result.returncode != 0:
-                    print(f"ffmpeg混合失败: {result.stderr}")
+                    print(f"ffmpeg混合失败 (返回码: {result.returncode})")
+                    print(f"ffmpeg错误输出: {result.stderr}")
+                    print(f"跳过ffmpeg混合，返回原始TTS音频")
                     return tts_audio_base64
                 
                 # 读取混合后的音频并编码为base64
