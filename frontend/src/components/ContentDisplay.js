@@ -333,6 +333,12 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap })
     const item = items[index];
     const paragraphNumber = index + 1;
 
+    console.log(`=== 开始生成视频 ===`);
+    console.log(`段落编号: ${paragraphNumber}`);
+    console.log(`taskId: ${taskId}`);
+    console.log(`WebSocket连接状态: ${wsService.isConnected()}`);
+    console.log(`useWebSocket: ${useWebSocket}`);
+
     if (videoCacheMap[paragraphNumber]) {
       console.log(`使用缓存的视频: 段落 ${paragraphNumber}`);
       setItems(prev => {
@@ -343,6 +349,14 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap })
         };
         return updated;
       });
+      return;
+    }
+
+    const currentImage = item.images && item.images.length > 0 ? item.images[0] : null;
+    
+    if (!currentImage) {
+      console.error(`❌ 段落 ${paragraphNumber} 没有可用的图片，无法生成视频`);
+      alert(`请先等待段落 ${paragraphNumber} 的图片生成完成后再生成视频`);
       return;
     }
 
@@ -366,19 +380,6 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap })
         });
       }, 300);
 
-      const currentImage = item.images && item.images.length > 0 ? item.images[0] : null;
-      
-      if (!currentImage) {
-        console.error('没有可用的图片');
-        setItems(prev => {
-          const updated = [...prev];
-          updated[index] = { ...updated[index], loadingVideo: false, progress: 0 };
-          return updated;
-        });
-        clearInterval(progressInterval);
-        return;
-      }
-      
       let imageBase64 = '';
       if (currentImage.startsWith('data:image/')) {
         imageBase64 = currentImage.split(',')[1];
@@ -386,10 +387,28 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap })
         imageBase64 = currentImage;
       }
       
+      console.log(`图片Base64长度: ${imageBase64.length}`);
+      console.log(`文本内容: ${item.text.substring(0, 50)}...`);
+      
       if (useWebSocket && wsService.isConnected()) {
-        wsService.sendVideoRequest(taskId, item.text, paragraphNumber, imageBase64);
+        console.log(`✅ 使用WebSocket发送视频生成请求`);
+        try {
+          wsService.sendVideoRequest(taskId, item.text, paragraphNumber, imageBase64);
+          console.log(`✅ WebSocket视频请求已发送`);
+        } catch (error) {
+          console.error(`❌ WebSocket发送失败:`, error);
+          clearInterval(progressInterval);
+          setItems(prev => {
+            const updated = [...prev];
+            updated[index] = { ...updated[index], loadingVideo: false, progress: 0 };
+            return updated;
+          });
+          alert(`视频生成请求发送失败: ${error.message}`);
+          return;
+        }
         
         const handleVideoResult = (data) => {
+          console.log(`收到视频结果:`, data);
           if (data.paragraph_number === paragraphNumber) {
             clearInterval(progressInterval);
             
@@ -421,8 +440,25 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap })
           }
         };
         
+        const handleVideoError = (data) => {
+          console.error(`收到视频生成错误:`, data);
+          if (data.paragraph_number === paragraphNumber) {
+            clearInterval(progressInterval);
+            setItems(prev => {
+              const updated = [...prev];
+              updated[index] = { ...updated[index], loadingVideo: false, progress: 0 };
+              return updated;
+            });
+            alert(`视频生成失败: ${data.message}`);
+            wsService.off('error', handleVideoError);
+            wsService.off('video_result', handleVideoResult);
+          }
+        };
+        
         wsService.on('video_result', handleVideoResult);
+        wsService.on('error', handleVideoError);
       } else {
+        console.log(`⚠️  WebSocket未连接，使用HTTP API`);
         const response = await generateVideo(taskId, item.text, paragraphNumber, imageBase64);
         
         clearInterval(progressInterval);
@@ -453,12 +489,13 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap })
       }
 
     } catch (error) {
-      console.error(`Error generating video for item ${paragraphNumber}:`, error);
+      console.error(`❌ 生成视频错误 (段落 ${paragraphNumber}):`, error);
       setItems(prev => {
         const updated = [...prev];
         updated[index] = { ...updated[index], loadingVideo: false, progress: 0 };
         return updated;
       });
+      alert(`视频生成失败: ${error.message}`);
     }
   };
 

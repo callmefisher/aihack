@@ -112,6 +112,9 @@ class WebSocketService {
    * @param {string} imageBase64 - base64编码的图片数据
    */
   sendVideoRequest(taskId, text, paragraphNumber, imageBase64) {
+    console.log(`=== WebSocket sendVideoRequest ===`);
+    console.log(`WebSocket状态: ${this.ws ? this.ws.readyState : 'null'} (OPEN=${WebSocket.OPEN})`);
+    
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       const message = {
         action: 'video',
@@ -120,9 +123,17 @@ class WebSocketService {
         paragraph_number: paragraphNumber,
         image_base64: imageBase64
       };
+      console.log(`发送视频请求消息:`, {
+        action: message.action,
+        task_id: message.task_id,
+        paragraph_number: message.paragraph_number,
+        text_length: message.text.length,
+        image_base64_length: message.image_base64.length
+      });
       this.ws.send(JSON.stringify(message));
+      console.log(`✅ 视频请求消息已发送到WebSocket`);
     } else {
-      console.error('WebSocket未连接');
+      console.error('❌ WebSocket未连接，无法发送视频请求');
       throw new Error('WebSocket未连接');
     }
   }

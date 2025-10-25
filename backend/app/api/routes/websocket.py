@@ -326,6 +326,12 @@ async def websocket_endpoint(websocket: WebSocket):
                 task_id = message.get("task_id")
                 image_url = message.get("image_url")
                 
+                print(f"=== 收到WebSocket消息 ===")
+                print(f"action: {action}")
+                print(f"paragraph_number: {paragraph_number}")
+                print(f"task_id: {task_id}")
+                print(f"text_length: {len(text) if text else 0}")
+                
                 if not text and action not in ["video"]:
                     await websocket.send_json({
                         "type": "error",
@@ -399,10 +405,16 @@ async def websocket_endpoint(websocket: WebSocket):
                 
                 # 处理视频生成请求
                 elif action == "video":
+                    print(f"=== 处理视频生成请求 ===")
                     image_base64 = message.get("image_base64", "")
                     text = message.get("text", "")
                     
+                    print(f"image_base64_length: {len(image_base64) if image_base64 else 0}")
+                    print(f"text: {text[:50] if text else 'empty'}...")
+                    print(f"paragraph_number: {paragraph_number}")
+                    
                     if not image_base64:
+                        print(f"❌ 图片数据为空，返回错误")
                         await websocket.send_json({
                             "type": "error",
                             "message": "图片数据不能为空",
@@ -410,6 +422,7 @@ async def websocket_endpoint(websocket: WebSocket):
                         })
                         continue
                     
+                    print(f"✅ 发送视频生成开始状态")
                     await websocket.send_json({
                         "type": "status",
                         "message": "开始生成视频...",
