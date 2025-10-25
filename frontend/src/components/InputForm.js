@@ -125,8 +125,8 @@ function InputForm({ onTaskCreated, onAudioCache }) {
           // WebSocket模式 - 分段发送TTS请求
           setProgress(30);
           
-          // 分割段落
-          const paragraphs = textInput.split(/\n\n+/).filter(p => p.trim().length > 0);
+          // 分割段落（使用单个换行符）
+          const paragraphs = textInput.split(/\n+/).filter(p => p.trim().length > 0);
           
           // 为每个段落发送TTS请求
           for (let i = 0; i < paragraphs.length; i++) {
@@ -141,7 +141,39 @@ function InputForm({ onTaskCreated, onAudioCache }) {
           throw new Error('WebSocket未连接，请等待连接成功后再试');
         }
       } else {
-        throw new Error('URL输入模式暂不支持，请使用文本输入');
+        if (!urlInput.trim()) {
+          throw new Error('请输入URL');
+        }
+        
+        if (!wsConnected) {
+          throw new Error('WebSocket未连接，请等待连接成功后再试');
+        }
+        
+        setProgress(10);
+        
+        try {
+          const fetchResponse = await fetch(urlInput);
+          if (!fetchResponse.ok) {
+            throw new Error(`无法获取URL内容: ${fetchResponse.status}`);
+          }
+          
+          const urlText = await fetchResponse.text();
+          setProgress(30);
+          
+          setTextInput(urlText);
+          
+          const paragraphs = urlText.split(/\n+/).filter(p => p.trim().length > 0);
+          
+          for (let i = 0; i < paragraphs.length; i++) {
+            wsService.sendText(paragraphs[i], i + 1);
+          }
+          
+          setProgress(50);
+          response = { task_id: `ws-url-${Date.now()}`, status: 'processing' };
+          onTaskCreated(response.task_id, urlText);
+        } catch (fetchError) {
+          throw new Error(`URL解析失败: ${fetchError.message}`);
+        }
       }
 
     } catch (err) {

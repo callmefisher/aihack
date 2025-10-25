@@ -23,7 +23,7 @@ function App() {
     setAudioCacheMap({});
     setVideoCacheMap({});
     
-    const splitParagraphs = text.split(/\n\n+/).filter(p => p.trim().length > 0);
+    const splitParagraphs = text.split(/\n+/).filter(p => p.trim().length > 0);
     setParagraphs(splitParagraphs);
     setShowContent(true);
   };
