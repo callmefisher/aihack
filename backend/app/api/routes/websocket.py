@@ -204,13 +204,13 @@ class QiniuLLMService:
             "Content-Type": "application/json"
         }
         
-        system_prompt = """你是一个专业的文本摘要助手。请将输入的文本段落精简为40个字符以内的关键字描述。
+        system_prompt = """你是一个专业的文本摘要助手。请将输入的文本段落精简为120个字符以内的关键字描述。
 要求：
 1. 如果是动漫/小说场景，需要提取场景关键词
 2. 如果包含角色，必须返回角色名称、特点、性格、外貌等关键信息
 3. 输出格式为JSON: {"keywords": "关键字描述", "character": "角色名称", "character_info": "角色详细信息"}
 4. 如果没有明确的角色，character和character_info为空字符串
-5. keywords必须精简到40个字符以内"""
+5. keywords必须精简到120个字符以内"""
         
         payload = {
             "messages": [
@@ -235,13 +235,13 @@ class QiniuLLMService:
                 import json as json_module
                 parsed = json_module.loads(content)
                 return {
-                    "keywords": parsed.get("keywords", "")[:40],
+                    "keywords": parsed.get("keywords", "")[:120],
                     "character": parsed.get("character", ""),
                     "character_info": parsed.get("character_info", "")
                 }
             except:
                 return {
-                    "keywords": content[:40],
+                    "keywords": content[:120],
                     "character": "",
                     "character_info": ""
                 }
