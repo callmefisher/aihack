@@ -419,28 +419,53 @@ async def websocket_endpoint(websocket: WebSocket):
                     async def generate_video_background():
                         """后台生成视频，不阻塞WebSocket"""
                         try:
-                            print("step1 image2video request txt " + text + " image:",image_base64)
-                            video_init_result = await qiniu_video.generate_video(text, image_base64)
+                            # 使用LLM将文本转换为关键词作为视频生成提示词
+                            llm_result = await qiniu_llm.simplify_text_to_keywords(text)
+                            video_prompt = llm_result.get("keywords", text[:40])
+                            
+                            print(f"step1 image2video request - original text: {text}")
+                            print(f"step1 image2video request - LLM generated prompt: {video_prompt}")
+                            print(f"step1 image2video request - image base64 length: {len(image_base64)}")
+                            
+                            video_init_result = await qiniu_video.generate_video(video_prompt, image_base64)
                             video_id = video_init_result.get("id")
                             print("step2 image2video response taskid " + video_id)
+                            
                             if video_id:
+                                # 发送进度更新
+                                if websocket.client_state.value == 1:  # CONNECTED
+                                    await websocket.send_json({
+                                        "type": "video_progress",
+                                        "message": "视频生成中，请稍候...",
+                                        "paragraph_number": paragraph_number
+                                    })
+                                
                                 video_final_result = await qiniu_video.poll_video_status(video_id)
                                 print("step3 image2video response task status " + video_final_result.get("status") )
+                                
                                 if video_final_result.get("status") == "Completed":
                                     videos = video_final_result.get("data", {}).get("videos", [])
                                     if videos and len(videos) > 0:
                                         video_url = videos[0].get("url")
-                                        await websocket.send_json({
-                                            "type": "video_result",
-                                            "video_url": video_url,
-                                            "paragraph_number": paragraph_number
-                                        })
+                                        # 只在WebSocket仍然连接时发送结果
+                                        if websocket.client_state.value == 1:  # CONNECTED
+                                            await websocket.send_json({
+                                                "type": "video_result",
+                                                "video_url": video_url,
+                                                "paragraph_number": paragraph_number
+                                            })
                         except Exception as e:
-                            await websocket.send_json({
-                                "type": "error",
-                                "message": f"视频生成失败: {str(e)}",
-                                "paragraph_number": paragraph_number
-                            })
+                            print(f"视频生成错误: {str(e)}")
+                            # 只在WebSocket仍然连接时发送错误消息
+                            try:
+                                if websocket.client_state.value == 1:  # CONNECTED
+                                    await websocket.send_json({
+                                        "type": "error",
+                                        "message": f"视频生成失败: {str(e)}",
+                                        "paragraph_number": paragraph_number
+                                    })
+                            except:
+                                pass
                     
                     asyncio.create_task(generate_video_background())
                 
