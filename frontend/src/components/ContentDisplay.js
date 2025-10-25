@@ -439,11 +439,13 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap, i
       const paragraphNumber = autoPlayAudio.paragraphNumber;
       const index = paragraphNumber - 1;
       const sequenceNumber = autoPlayAudio.sequenceNumber !== undefined ? autoPlayAudio.sequenceNumber : 0;
-      console.log(`自动播放音频: 段落 ${paragraphNumber}, 序列号 ${sequenceNumber}, 索引=${index}`);
+      console.log(`收到自动播放音频请求: 段落 ${paragraphNumber}, 序列号 ${sequenceNumber}, 索引=${index}`);
       
-      if (currentAudio) {
-        currentAudio.pause();
-        setCurrentAudio(null);
+      // 关键修复：如果当前正在播放音频，不要打断，而是等待当前播放完成
+      if (currentAudio && !currentAudio.paused) {
+        console.log(`⚠️  当前正在播放音频，新音频加入队列等待: 段落 ${paragraphNumber}, 序列号 ${sequenceNumber}`);
+        // 音频已经在队列中，会在当前音频播放结束时自动播放
+        return;
       }
       
       const audio = new Audio(autoPlayAudio.audioUrl);
@@ -457,13 +459,14 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap, i
           setAudioPlaying(null);
           setCurrentAudio(null);
           
+          // 检查队列中是否有下一个序列
           if (audioQueueMap && audioQueueMap[paragraphNumber]) {
             const queue = audioQueueMap[paragraphNumber];
             const currentIndex = queue.findIndex(item => item.sequenceNumber === sequenceNumber);
             
             if (currentIndex !== -1 && currentIndex + 1 < queue.length) {
               const nextItem = queue[currentIndex + 1];
-              console.log(`播放下一个序列: 段落 ${paragraphNumber}, 序列号 ${nextItem.sequenceNumber}`);
+              console.log(`自动播放下一个序列: 段落 ${paragraphNumber}, 序列号 ${nextItem.sequenceNumber}`);
               
               const nextAudio = new Audio(nextItem.audioUrl);
               nextAudio.play().then(() => {
@@ -471,14 +474,49 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap, i
                 setAudioPlaying(index);
                 setCurrentAudio(nextAudio);
                 
+                // 递归处理后续序列
+                const playNextInQueue = (currentSeq) => {
+                  const curIdx = queue.findIndex(item => item.sequenceNumber === currentSeq);
+                  if (curIdx !== -1 && curIdx + 1 < queue.length) {
+                    const followingItem = queue[curIdx + 1];
+                    console.log(`继续播放序列: 段落 ${paragraphNumber}, 序列号 ${followingItem.sequenceNumber}`);
+                    
+                    const followingAudio = new Audio(followingItem.audioUrl);
+                    followingAudio.play().then(() => {
+                      console.log(`✅ 序列播放开始: 段落 ${paragraphNumber}, 序列号 ${followingItem.sequenceNumber}`);
+                      setAudioPlaying(index);
+                      setCurrentAudio(followingAudio);
+                      
+                      followingAudio.onended = () => {
+                        console.log(`序列播放结束: 段落 ${paragraphNumber}, 序列号 ${followingItem.sequenceNumber}`);
+                        setAudioPlaying(null);
+                        setCurrentAudio(null);
+                        playNextInQueue(followingItem.sequenceNumber);
+                      };
+                    }).catch(error => {
+                      console.error(`❌ 播放序列失败: 段落 ${paragraphNumber}, 序列号 ${followingItem.sequenceNumber}`, error);
+                      setAudioPlaying(null);
+                      setCurrentAudio(null);
+                      playNextInQueue(followingItem.sequenceNumber);
+                    });
+                  } else {
+                    console.log(`✅ 段落 ${paragraphNumber} 所有序列播放完成`);
+                  }
+                };
+                
                 nextAudio.onended = () => {
                   console.log(`音频播放结束: 段落 ${paragraphNumber}, 序列号 ${nextItem.sequenceNumber}`);
                   setAudioPlaying(null);
                   setCurrentAudio(null);
+                  playNextInQueue(nextItem.sequenceNumber);
                 };
               }).catch(error => {
                 console.error(`❌ 播放下一个音频失败:`, error);
+                setAudioPlaying(null);
+                setCurrentAudio(null);
               });
+            } else {
+              console.log(`✅ 段落 ${paragraphNumber} 所有序列播放完成`);
             }
           }
         };
