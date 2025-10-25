@@ -64,18 +64,11 @@ function InputForm({ onTaskCreated, onAudioCache }) {
             // 缓存音频URL到父组件
             if (onAudioCache && paragraphNumber !== undefined) {
               onAudioCache(paragraphNumber, audioUrl);
+              console.log(`音频已缓存，段落 ${paragraphNumber}`);
             }
             
-            // 创建并播放音频
-            const audio = new Audio(audioUrl);
-            audio.play().then(() => {
-              console.log('音频播放成功');
-            }).catch(error => {
-              console.error('音频播放失败:', error);
-              setError('音频播放失败: ' + error.message);
-            });
-            
-            // 注意：不再在音频结束后立即清理URL，因为需要缓存
+            // 注意：不再自动播放音频，用户需要点击播放按钮
+            // 音频URL已缓存，可以通过ContentDisplay组件的播放按钮播放
             // URL清理将由父组件管理
           } catch (error) {
             console.error('解码base64音频失败:', error);
