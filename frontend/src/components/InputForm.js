@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './InputForm.css';
 import wsService from '../services/websocket';
 
-function InputForm({ onTaskCreated, onAudioCache }) {
+function InputForm({ onTaskCreated, onAudioCache, onImageCache }) {
   const [inputType, setInputType] = useState('text');
   const [textInput, setTextInput] = useState('');
   const [urlInput, setUrlInput] = useState('');
@@ -70,6 +70,26 @@ function InputForm({ onTaskCreated, onAudioCache }) {
       const handleImageResult = (data) => {
         setStreamingMessages(prev => [...prev, { type: 'image_result', ...data }]);
         console.log('图片生成结果:', data);
+        
+        if (data.data && data.data.data && Array.isArray(data.data.data)) {
+          try {
+            const imageUrls = data.data.data.map(img => {
+              const base64Data = img.b64_json;
+              const format = data.data.output_format || 'png';
+              return `data:image/${format};base64,${base64Data}`;
+            });
+            
+            const paragraphNumber = data.paragraph_number;
+            
+            if (onImageCache && paragraphNumber !== undefined) {
+              onImageCache(paragraphNumber, imageUrls);
+              console.log(`图片已缓存，段落 ${paragraphNumber}，图片数量 ${imageUrls.length}`);
+            }
+          } catch (error) {
+            console.error('处理图片数据失败:', error);
+            setError('处理图片失败: ' + error.message);
+          }
+        }
       };
       const handleError = (data) => {
         setError(data.message);
