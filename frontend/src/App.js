@@ -14,6 +14,7 @@ function App() {
   const [progress, setProgress] = useState({ completed: 0, total: 0 });
   const [audioCacheMap, setAudioCacheMap] = useState({});
   const [videoCacheMap, setVideoCacheMap] = useState({});
+  const [autoPlayAudio, setAutoPlayAudio] = useState(null);
 
   const handleTaskCreated = (id, text) => {
     setTaskId(id);
@@ -27,12 +28,15 @@ function App() {
     setShowContent(true);
   };
 
-  const handleAudioCache = (paragraphNumber, audioUrl) => {
+  const handleAudioCache = (paragraphNumber, audioUrl, autoPlay = false) => {
     setAudioCacheMap(prev => ({
       ...prev,
       [paragraphNumber]: audioUrl
     }));
-    console.log(`缓存音频: 段落 ${paragraphNumber}`);
+    console.log(`缓存音频: 段落 ${paragraphNumber}, 自动播放=${autoPlay}`);
+    if (autoPlay) {
+      setAutoPlayAudio({ paragraphNumber, audioUrl, timestamp: Date.now() });
+    }
   };
 
   const handleTaskComplete = (url) => {
@@ -85,7 +89,7 @@ function App() {
           </div>
         )}
         
-        <ContentDisplay taskId={taskId} paragraphs={paragraphs} onProgressUpdate={setProgress} audioCacheMap={audioCacheMap} />
+        <ContentDisplay taskId={taskId} paragraphs={paragraphs} onProgressUpdate={setProgress} audioCacheMap={audioCacheMap} autoPlayAudio={autoPlayAudio} />
         
         {taskCompleted && videoUrl && (
           <VideoPlayer 

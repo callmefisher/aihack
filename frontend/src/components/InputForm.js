@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import './InputForm.css';
-import { createTextTask, createURLTask } from '../services/api';
 import wsService from '../services/websocket';
 
 function InputForm({ onTaskCreated, onAudioCache }) {
@@ -43,10 +42,8 @@ function InputForm({ onTaskCreated, onAudioCache }) {
         setStreamingMessages(prev => [...prev, { type: 'tts_result', ...data }]);
         console.log('TTS结果:', data);
         
-        // 处理七牛云TTS返回的base64音频数据
         if (data.data && data.data.data) {
           try {
-            // 解码base64音频数据
             const base64Audio = data.data.data;
             const binaryString = atob(base64Audio);
             const bytes = new Uint8Array(binaryString.length);
@@ -54,22 +51,15 @@ function InputForm({ onTaskCreated, onAudioCache }) {
               bytes[i] = binaryString.charCodeAt(i);
             }
             
-            // 创建Blob对象
             const blob = new Blob([bytes], { type: 'audio/mpeg' });
             const audioUrl = URL.createObjectURL(blob);
             
-            // 从数据中提取段落编号，如果没有则使用文本匹配
             const paragraphNumber = data.paragraph_number;
             
-            // 缓存音频URL到父组件
             if (onAudioCache && paragraphNumber !== undefined) {
-              onAudioCache(paragraphNumber, audioUrl);
-              console.log(`音频已缓存，段落 ${paragraphNumber}`);
+              onAudioCache(paragraphNumber, audioUrl, true);
+              console.log(`音频已缓存且将自动播放，段落 ${paragraphNumber}`);
             }
-            
-            // 注意：不再自动播放音频，用户需要点击播放按钮
-            // 音频URL已缓存，可以通过ContentDisplay组件的播放按钮播放
-            // URL清理将由父组件管理
           } catch (error) {
             console.error('解码base64音频失败:', error);
             setError('解码音频失败: ' + error.message);
@@ -173,21 +163,10 @@ function InputForm({ onTaskCreated, onAudioCache }) {
           response = { task_id: `ws-${Date.now()}`, status: 'processing' };
           onTaskCreated(response.task_id, text);
         } else {
-          // HTTP模式（仅在WebSocket未启用或未连接时使用）
-          setProgress(30);
-          response = await createTextTask(textInput);
-          setProgress(100);
-          onTaskCreated(response.task_id, text);
+          throw new Error('WebSocket未连接，请等待连接成功后再试');
         }
       } else {
-        if (!urlInput.trim()) {
-          throw new Error('请输入小说URL');
-        }
-        setProgress(30);
-        response = await createURLTask(urlInput);
-        text = response.text || urlInput;
-        setProgress(100);
-        onTaskCreated(response.task_id, text);
+        throw new Error('URL输入模式暂不支持，请使用文本输入');
       }
 
     } catch (err) {

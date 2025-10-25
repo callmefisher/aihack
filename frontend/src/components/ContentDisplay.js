@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import './ContentDisplay.css';
-import { generateImage, generateVideo, getAudio } from '../services/api';
+import { generateVideo } from '../services/api';
 import wsService from '../services/websocket';
 
-function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap }) {
+function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap, autoPlayAudio }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState({});
   const [audioPlaying, setAudioPlaying] = useState(null);
@@ -68,15 +68,17 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap })
           const updated = [...prev];
           const index = paragraph_number - 1;
           console.log(`  当前items长度=${updated.length}, 目标索引=${index}`);
+          console.log(`  段落 ${paragraph_number} 更新前的images:`, updated[index]?.images);
           
           if (index >= 0 && index < updated.length) {
             updated[index] = {
               ...updated[index],
-              images: imageUrls,
+              images: [...imageUrls],
               loadingImage: false,
               progress: 100
             };
             console.log(`✅ 段落 ${paragraph_number} 图片已更新，图片数量=${imageUrls.length}`);
+            console.log(`  更新后的images:`, updated[index].images);
           } else {
             console.error(`❌ 索引越界: index=${index}, items.length=${updated.length}`);
           }
@@ -129,67 +131,9 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap })
         loadingImage: true,
         progress: 10
       })));
-    } else {
-      for (let i = 0; i < itemsList.length; i++) {
-        await generateImageForItem(i);
-      }
     }
   };
 
-  const generateImageForItem = async (index) => {
-    setItems(prev => {
-      const updated = [...prev];
-      updated[index] = { ...updated[index], loadingImage: true, progress: 0 };
-      return updated;
-    });
-
-    try {
-      let currentProgress = 0;
-      const progressInterval = setInterval(() => {
-        setItems(prev => {
-          const updated = [...prev];
-          if (updated[index] && currentProgress < 90) {
-            const increment = Math.random() * 1.5 + 0.5;
-            currentProgress = Math.min(90, currentProgress + increment);
-            updated[index] = { ...updated[index], progress: currentProgress };
-          }
-          return updated;
-        });
-      }, 100);
-
-      const response = await generateImage(taskId, items[index].text, index + 1);
-      
-      clearInterval(progressInterval);
-
-      setItems(prev => {
-        const updated = [...prev];
-        updated[index] = {
-          ...updated[index],
-          images: [response.image_url, response.image_url, response.image_url],
-          audioUrl: response.audio_url,
-          loadingImage: false,
-          progress: 100
-        };
-        return updated;
-      });
-
-      setTimeout(() => {
-        setItems(prev => {
-          const updated = [...prev];
-          updated[index] = { ...updated[index], progress: 0 };
-          return updated;
-        });
-      }, 1000);
-
-    } catch (error) {
-      console.error(`Error generating image for item ${index + 1}:`, error);
-      setItems(prev => {
-        const updated = [...prev];
-        updated[index] = { ...updated[index], loadingImage: false, progress: 0 };
-        return updated;
-      });
-    }
-  };
 
   const handlePlayAudio = async (index) => {
     const item = items[index];
@@ -217,31 +161,6 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap })
 
     if (item.audioUrl) {
       playAudio(item.audioUrl, index);
-    } else {
-      setItems(prev => {
-        const updated = [...prev];
-        updated[index] = { ...updated[index], loadingAudio: true };
-        return updated;
-      });
-
-      try {
-        const response = await getAudio(taskId, item.text, paragraphNumber);
-        
-        setItems(prev => {
-          const updated = [...prev];
-          updated[index] = { ...updated[index], audioUrl: response.audio_url, loadingAudio: false };
-          return updated;
-        });
-
-        playAudio(response.audio_url, index);
-      } catch (error) {
-        console.error(`Error getting audio for item ${paragraphNumber}:`, error);
-        setItems(prev => {
-          const updated = [...prev];
-          updated[index] = { ...updated[index], loadingAudio: false };
-          return updated;
-        });
-      }
     }
   };
 
@@ -457,34 +376,15 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap })
         wsService.on('video_result', handleVideoResult);
         wsService.on('error', handleVideoError);
       } else {
-        console.log(`⚠️  WebSocket未连接，使用HTTP API`);
-        const response = await generateVideo(taskId, item.text, paragraphNumber, imageBase64);
-        
+        console.error(`❌ WebSocket未连接，无法生成视频`);
         clearInterval(progressInterval);
-
-        setVideoCacheMap(prev => ({
-          ...prev,
-          [paragraphNumber]: response.video_url
-        }));
-
         setItems(prev => {
           const updated = [...prev];
-          updated[index] = {
-            ...updated[index],
-            video: response.video_url,
-            loadingVideo: false,
-            progress: 100
-          };
+          updated[index] = { ...updated[index], loadingVideo: false, progress: 0 };
           return updated;
         });
-
-        setTimeout(() => {
-          setItems(prev => {
-            const updated = [...prev];
-            updated[index] = { ...updated[index], progress: 0 };
-            return updated;
-          });
-        }, 1000);
+        alert('请确保WebSocket已连接后再生成视频');
+        return;
       }
 
     } catch (error) {
@@ -507,6 +407,33 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap })
       onProgressUpdate({ completed: completedItems, total: totalItems });
     }
   }, [completedItems, totalItems, onProgressUpdate]);
+
+  useEffect(() => {
+    if (autoPlayAudio && autoPlayAudio.paragraphNumber && autoPlayAudio.audioUrl) {
+      const index = autoPlayAudio.paragraphNumber - 1;
+      console.log(`自动播放音频: 段落 ${autoPlayAudio.paragraphNumber}, 索引=${index}`);
+      
+      if (currentAudio) {
+        currentAudio.pause();
+        setCurrentAudio(null);
+      }
+      
+      const audio = new Audio(autoPlayAudio.audioUrl);
+      audio.play().then(() => {
+        console.log(`✅ 音频自动播放开始: 段落 ${autoPlayAudio.paragraphNumber}`);
+        setAudioPlaying(index);
+        setCurrentAudio(audio);
+        
+        audio.onended = () => {
+          console.log(`音频播放结束: 段落 ${autoPlayAudio.paragraphNumber}`);
+          setAudioPlaying(null);
+          setCurrentAudio(null);
+        };
+      }).catch(error => {
+        console.error(`❌ 自动播放音频失败:`, error);
+      });
+    }
+  }, [autoPlayAudio]);
 
   if (!paragraphs || paragraphs.length === 0) {
     return (
