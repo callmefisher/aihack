@@ -41,7 +41,6 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap })
     const handleImageResult = (payload) => {
       console.log('=== ContentDisplay收到图片结果 ===');
       console.log('完整payload:', JSON.stringify(payload, null, 2));
-      console.log('当前items数组长度:', items.length);
       
       const { data, paragraph_number } = payload;
       
@@ -111,7 +110,7 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap })
     } else {
       console.log('⚠️  WebSocket未连接，跳过事件监听器注册');
     }
-  }, [useWebSocket, items.length]);
+  }, [useWebSocket]);
 
   const processTestMode = (itemsList) => {
     const updatedItems = itemsList.map((item, index) => ({
