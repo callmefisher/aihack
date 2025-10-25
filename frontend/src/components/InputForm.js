@@ -70,31 +70,6 @@ function InputForm({ onTaskCreated, onAudioCache }) {
       const handleImageResult = (data) => {
         setStreamingMessages(prev => [...prev, { type: 'image_result', ...data }]);
         console.log('图片生成结果:', data);
-
-        // 处理七牛云文生图返回的base64图片数据
-        if (data.data && data.data.data && Array.isArray(data.data.data)) {
-          try {
-            const imageUrls = data.data.data.map((item, index) => {
-              const base64Image = item.b64_json;
-              const binaryString = atob(base64Image);
-              const bytes = new Uint8Array(binaryString.length);
-              for (let i = 0; i < binaryString.length; i++) {
-                bytes[i] = binaryString.charCodeAt(i);
-              }
-
-              const blob = new Blob([bytes], { type: 'image/png' });
-              const imageUrl = URL.createObjectURL(blob);
-
-              console.log(`图片 ${index + 1} 生成成功:`, imageUrl);
-              return imageUrl;
-            });
-
-            console.log(`段落 ${data.paragraph_number} 的 ${imageUrls.length} 张图片已生成`);
-          } catch (error) {
-            console.error('解码base64图片失败:', error);
-            setError('解码图片失败: ' + error.message);
-          }
-        }
       };
       const handleError = (data) => {
         setError(data.message);
