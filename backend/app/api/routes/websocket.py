@@ -261,36 +261,6 @@ async def websocket_endpoint(websocket: WebSocket):
                                 "paragraph_number": paragraph_number
                             })
                             
-                            async def generate_video_background():
-                                """后台生成视频，不阻塞图片返回"""
-                                try:
-                                    if image_result.get("data") and len(image_result["data"]) > 0:
-                                        first_image_base64 = image_result["data"][0].get("b64_json", "")
-                                        
-                                        video_init_result = await qiniu_video.generate_video(text, first_image_base64)
-                                        video_id = video_init_result.get("id")
-                                        
-                                        if video_id:
-                                            video_final_result = await qiniu_video.poll_video_status(video_id)
-                                            
-                                            if video_final_result.get("status") == "Completed":
-                                                videos = video_final_result.get("data", {}).get("videos", [])
-                                                if videos and len(videos) > 0:
-                                                    video_url = videos[0].get("url")
-                                                    await websocket.send_json({
-                                                        "type": "video_result",
-                                                        "video_url": video_url,
-                                                        "paragraph_number": paragraph_number
-                                                    })
-                                except Exception as e:
-                                    await websocket.send_json({
-                                        "type": "error",
-                                        "message": f"视频生成失败: {str(e)}",
-                                        "paragraph_number": paragraph_number
-                                    })
-                            
-                            asyncio.create_task(generate_video_background())
-                            
                         except httpx.TimeoutException as e:
                             await websocket.send_json({
                                 "type": "error",
@@ -337,7 +307,16 @@ async def websocket_endpoint(websocket: WebSocket):
                 
                 # 处理视频生成请求
                 elif action == "video":
-                    # 发送处理开始消息
+                    image_base64 = message.get("image_base64", "")
+                    
+                    if not image_base64:
+                        await websocket.send_json({
+                            "type": "error",
+                            "message": "缺少base64图像数据",
+                            "paragraph_number": paragraph_number
+                        })
+                        continue
+                    
                     await websocket.send_json({
                         "type": "status",
                         "message": "开始生成视频...",
@@ -345,28 +324,27 @@ async def websocket_endpoint(websocket: WebSocket):
                     })
                     
                     try:
-                        # 模拟视频生成过程
-                        output_dir = Path(f"output/{task_id}")
-                        output_dir.mkdir(parents=True, exist_ok=True)
+                        video_init_result = await qiniu_video.generate_video(text, image_base64)
+                        video_id = video_init_result.get("id")
                         
-                        video_path = output_dir / f"video_{paragraph_number}.mp4"
-                        
-                        if not video_path.exists():
-                            # 下载示例视频
-                            async with httpx.AsyncClient(timeout=120.0) as client:
-                                response = await client.get("https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4")
-                                if response.status_code == 200:
-                                    with open(video_path, 'wb') as f:
-                                        f.write(response.content)
-                        
-                        video_url = f"/output/{task_id}/video_{paragraph_number}.mp4"
-                        
-                        # 发送视频生成结果
-                        await websocket.send_json({
-                            "type": "video_result",
-                            "video_url": video_url,
-                            "paragraph_number": paragraph_number
-                        })
+                        if video_id:
+                            video_final_result = await qiniu_video.poll_video_status(video_id)
+                            
+                            if video_final_result.get("status") == "Completed":
+                                videos = video_final_result.get("data", {}).get("videos", [])
+                                if videos and len(videos) > 0:
+                                    video_url = videos[0].get("url")
+                                    await websocket.send_json({
+                                        "type": "video_result",
+                                        "video_url": video_url,
+                                        "paragraph_number": paragraph_number
+                                    })
+                        else:
+                            await websocket.send_json({
+                                "type": "error",
+                                "message": "视频生成API未返回任务ID",
+                                "paragraph_number": paragraph_number
+                            })
                         
                     except httpx.HTTPError as e:
                         await websocket.send_json({
