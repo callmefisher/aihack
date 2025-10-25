@@ -646,7 +646,7 @@ async def websocket_endpoint(websocket: WebSocket):
                         "sequence_number": sequence_number
                     })
                     
-                    async def generate_video_background():
+                    async def generate_video_background(para_num, seq_num):
                         """后台生成视频，不阻塞WebSocket"""
                         try:
                             # 使用LLM将文本转换为关键词作为视频生成提示词
@@ -656,6 +656,7 @@ async def websocket_endpoint(websocket: WebSocket):
                             print(f"step1 image2video request - original text: {text}")
                             print(f"step1 image2video request - LLM generated prompt: {video_prompt}")
                             print(f"step1 image2video request - image base64 length: {len(image_base64)}")
+                            print(f"step1 image2video request - paragraph_number: {para_num}, sequence_number: {seq_num}")
                             
                             video_init_result = await qiniu_video.generate_video(video_prompt, image_base64)
                             video_id = video_init_result.get("id")
@@ -670,8 +671,8 @@ async def websocket_endpoint(websocket: WebSocket):
                                             "type": "video_progress",
                                             "message": f"视频生成中... {progress_percent}%",
                                             "progress": progress_percent,
-                                            "paragraph_number": paragraph_number,
-                                            "sequence_number": sequence_number
+                                            "paragraph_number": para_num,
+                                            "sequence_number": seq_num
                                         })
                                 
                                 video_final_result = await qiniu_video.poll_video_status(
@@ -689,8 +690,8 @@ async def websocket_endpoint(websocket: WebSocket):
                                             await websocket.send_json({
                                                 "type": "video_result",
                                                 "video_url": video_url,
-                                                "paragraph_number": paragraph_number,
-                                                "sequence_number": sequence_number
+                                                "paragraph_number": para_num,
+                                                "sequence_number": seq_num
                                             })
                         except Exception as e:
                             print(f"视频生成错误: {str(e)}")
@@ -700,13 +701,13 @@ async def websocket_endpoint(websocket: WebSocket):
                                     await websocket.send_json({
                                         "type": "error",
                                         "message": f"视频生成失败: {str(e)}",
-                                        "paragraph_number": paragraph_number,
-                                        "sequence_number": sequence_number
+                                        "paragraph_number": para_num,
+                                        "sequence_number": seq_num
                                     })
                             except:
                                 pass
                     
-                    asyncio.create_task(generate_video_background())
+                    asyncio.create_task(generate_video_background(paragraph_number, sequence_number))
                 
                 # 发送完成消息
                 await websocket.send_json({
