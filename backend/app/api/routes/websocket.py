@@ -125,12 +125,13 @@ class QiniuTTSService:
             print(f"音频混合过程出错: {str(e)}，返回原始TTS音频")
             return tts_audio_base64
     
-    async def text_to_speech(self, text: str) -> Dict[str, Any]:
+    async def text_to_speech(self, text: str, sequence_number: int = 0) -> Dict[str, Any]:
         """
         调用七牛云TTS API并混合背景音乐
         
         Args:
             text: 要转换的文本
+            sequence_number: 序列号，只有序列号为0（段落内第一个）时才混合背景音乐
             
         Returns:
             API响应数据（包含混合背景音乐后的音频）
@@ -164,13 +165,16 @@ class QiniuTTSService:
             # 获取原始TTS音频数据
             if 'data' in result:
                 original_audio_base64 = result['data']
-                print(f"TTS生成成功，开始混合背景音乐...")
                 
-                # 混合背景音乐
-                mixed_audio_base64 = self.mix_audio_with_background(original_audio_base64)
-                
-                # 更新返回数据
-                result['data'] = mixed_audio_base64
+                # 只有序列号为0（段落内第一个）时才混合背景音乐
+                if sequence_number == 0:
+                    print(f"TTS生成成功，序列号为0，开始混合背景音乐...")
+                    # 混合背景音乐
+                    mixed_audio_base64 = self.mix_audio_with_background(original_audio_base64)
+                    # 更新返回数据
+                    result['data'] = mixed_audio_base64
+                else:
+                    print(f"TTS生成成功，序列号为{sequence_number}，跳过背景音乐混合")
             
             return result
 
@@ -563,7 +567,8 @@ async def websocket_endpoint(websocket: WebSocket):
                             print(f"处理句子 {idx + 1}/{len(sentences)}: {sentence[:30]}...")
                             
                             try:
-                                tts_result = await qiniu_tts.text_to_speech(sentence)
+                                # 传递序列号，只有idx=0时才会混合背景音乐
+                                tts_result = await qiniu_tts.text_to_speech(sentence, sequence_number=idx)
                                 
                                 await websocket.send_json({
                                     "type": "tts_result",
