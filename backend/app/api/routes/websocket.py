@@ -204,13 +204,15 @@ class QiniuLLMService:
             "Content-Type": "application/json"
         }
         
-        system_prompt = """你是一个专业的文本摘要助手。请将输入的文本段落精简为120个字符以内的关键字描述。
+        system_prompt = """你是一个专业的文本摘要助手。请将输入的文本段落精简为关键字描述。
 要求：
-1. 如果是动漫/小说场景，需要提取场景关键词
-2. 如果包含角色，必须返回角色名称、特点、性格、外貌等关键信息
-3. 输出格式为JSON: {"keywords": "关键字描述", "character": "角色名称", "character_info": "角色详细信息"}
+1. 必须提取场景关键词（场景描述、环境、氛围等）
+2. 如果包含角色，必须返回角色名称、特点、性格、外貌等详细信息
+3. 输出格式为JSON: {"keywords": "关键字描述", "scene": "场景名称或类型", "scene_summary": "场景详细描述摘要", "character": "角色名称", "character_info": "角色详细信息"}
 4. 如果没有明确的角色，character和character_info为空字符串
-5. keywords必须精简到120个字符以内"""
+5. 如果没有明确的场景，scene和scene_summary为空字符串
+6. keywords必须精简到120个字符以内
+7. scene_summary和character_info需要包含足够详细的信息以保证图片风格一致性"""
         
         payload = {
             "messages": [
@@ -236,12 +238,16 @@ class QiniuLLMService:
                 parsed = json_module.loads(content)
                 return {
                     "keywords": parsed.get("keywords", "")[:120],
+                    "scene": parsed.get("scene", ""),
+                    "scene_summary": parsed.get("scene_summary", ""),
                     "character": parsed.get("character", ""),
                     "character_info": parsed.get("character_info", "")
                 }
             except:
                 return {
                     "keywords": content[:120],
+                    "scene": "",
+                    "scene_summary": "",
                     "character": "",
                     "character_info": ""
                 }
@@ -257,10 +263,11 @@ class QiniuImageService:
             api_key = api_key.decode('utf-8')
         self.api_token = api_key.replace('Bearer ', '').strip() if api_key else ""
         self.character_cache = {}
+        self.scene_cache = {}
     
     async def _simplify_text_to_prompt(self, text: str, llm_service: 'QiniuLLMService') -> str:
         """
-        将原始文本精简为关键字(人物、场景等)
+        将原始文本精简为关键字(人物、场景等)，并优先使用缓存信息保证风格一致性
         
         Args:
             text: 原始文本
@@ -272,16 +279,33 @@ class QiniuImageService:
         llm_result = await llm_service.simplify_text_to_keywords(text)
         
         keywords = llm_result.get("keywords", "")
+        scene = llm_result.get("scene", "")
+        scene_summary = llm_result.get("scene_summary", "")
         character = llm_result.get("character", "")
         character_info = llm_result.get("character_info", "")
+        
+        if scene and scene_summary:
+            self.scene_cache[scene] = scene_summary
         
         if character and character_info:
             self.character_cache[character] = character_info
         
+        prompt_parts = []
+        
+        if scene and scene in self.scene_cache:
+            prompt_parts.append(self.scene_cache[scene])
+        elif scene_summary:
+            prompt_parts.append(scene_summary)
+        
         if character and character in self.character_cache:
-            prompt = f"{self.character_cache[character]}, {keywords}"
-        else:
-            prompt = keywords
+            prompt_parts.append(self.character_cache[character])
+        elif character_info:
+            prompt_parts.append(character_info)
+        
+        if keywords:
+            prompt_parts.append(keywords)
+        
+        prompt = ", ".join(prompt_parts) if prompt_parts else keywords
         
         return prompt[:200]
     
