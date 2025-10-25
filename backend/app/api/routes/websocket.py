@@ -393,18 +393,22 @@ class QiniuVideoService:
             response.raise_for_status()
             return response.json()
     
-    async def poll_video_status(self, video_id: str, max_attempts: int = 100, interval: int = 5) -> Dict[str, Any]:
+    async def poll_video_status(self, video_id: str, max_attempts: int = 150, initial_interval: float = 1.0, max_interval: float = 5.0, progress_callback=None) -> Dict[str, Any]:
         """
-        周期性查询视频生成状态，直到完成
+        周期性查询视频生成状态，直到完成（使用智能退避策略）
         
         Args:
             video_id: 视频生成任务ID
             max_attempts: 最大查询次数
-            interval: 查询间隔（秒）
+            initial_interval: 初始查询间隔（秒）
+            max_interval: 最大查询间隔（秒）
+            progress_callback: 进度回调函数
             
         Returns:
             完成后的API响应数据
         """
+        current_interval = initial_interval
+        
         for attempt in range(max_attempts):
             result = await self.check_video_status(video_id)
             
@@ -413,7 +417,12 @@ class QiniuVideoService:
             elif result.get("status") == "Failed":
                 raise Exception(f"视频生成失败: {result.get('message', '未知错误')}")
             
-            await asyncio.sleep(interval)
+            if progress_callback:
+                await progress_callback(attempt, max_attempts)
+            
+            await asyncio.sleep(current_interval)
+            
+            current_interval = min(current_interval * 1.2, max_interval)
         
         raise Exception(f"视频生成超时，已尝试 {max_attempts} 次")
 
@@ -572,15 +581,21 @@ async def websocket_endpoint(websocket: WebSocket):
                             print("step2 image2video response taskid " + video_id)
                             
                             if video_id:
-                                # 发送进度更新
-                                if websocket.client_state.value == 1:  # CONNECTED
-                                    await websocket.send_json({
-                                        "type": "video_progress",
-                                        "message": "视频生成中，请稍候...",
-                                        "paragraph_number": paragraph_number
-                                    })
+                                async def send_progress(attempt, max_attempts):
+                                    """发送进度更新到前端"""
+                                    if websocket.client_state.value == 1:  # CONNECTED
+                                        progress_percent = int((attempt / max_attempts) * 100)
+                                        await websocket.send_json({
+                                            "type": "video_progress",
+                                            "message": f"视频生成中... {progress_percent}%",
+                                            "progress": progress_percent,
+                                            "paragraph_number": paragraph_number
+                                        })
                                 
-                                video_final_result = await qiniu_video.poll_video_status(video_id)
+                                video_final_result = await qiniu_video.poll_video_status(
+                                    video_id,
+                                    progress_callback=send_progress
+                                )
                                 print("step3 image2video response task status " + video_final_result.get("status") )
                                 
                                 if video_final_result.get("status") == "Completed":
