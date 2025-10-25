@@ -341,7 +341,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     })
                     continue
                 
-                if not text and action != "video":
+                if not text and action not in ["video"]:
                     await websocket.send_json({
                         "type": "error",
                         "message": "文本内容不能为空"
@@ -415,6 +415,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 # 处理视频生成请求
                 elif action == "video":
                     image_base64 = message.get("image_base64", "")
+                    text = message.get("text", "")
                     
                     if not image_base64:
                         await websocket.send_json({
@@ -475,7 +476,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 })
     
     except WebSocketDisconnect:
-        print("WebSocket连接已断开")
+        pass
     except Exception as e:
         print(f"WebSocket错误: {str(e)}")
         try:

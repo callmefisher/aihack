@@ -354,11 +354,12 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap })
         setItems(prev => {
           const updated = [...prev];
           if (updated[index] && updated[index].progress < 90) {
-            updated[index] = { ...updated[index], progress: updated[index].progress + 5 };
+            const randomIncrement = Math.random() * 1.5 + 0.5;
+            updated[index] = { ...updated[index], progress: Math.min(updated[index].progress + randomIncrement, 90) };
           }
           return updated;
         });
-      }, 1000);
+      }, 300);
 
       const currentImage = item.images && item.images.length > 0 ? item.images[0] : null;
       
