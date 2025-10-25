@@ -155,6 +155,9 @@ class WebSocketService {
       case 'image_result':
         this.emit('image_result', payload);
         break;
+      case 'video_progress':
+        this.emit('video_progress', payload);
+        break;
       case 'video_result':
         this.emit('video_result', payload);
         break;

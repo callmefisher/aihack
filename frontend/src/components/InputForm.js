@@ -91,6 +91,12 @@ function InputForm({ onTaskCreated, onAudioCache, onImageCache }) {
           }
         }
       };
+
+      const handleVideoProgress = (data) => {
+        setStreamingMessages(prev => [...prev, { type: 'video_progress', ...data }]);
+        console.log('视频生成进度:', data);
+      };
+
       const handleError = (data) => {
         setError(data.message);
         setStreamingMessages(prev => [...prev, { type: 'error', ...data }]);
@@ -104,6 +110,7 @@ function InputForm({ onTaskCreated, onAudioCache, onImageCache }) {
       wsService.on('status', handleStatus);
       wsService.on('tts_result', handleTTSResult);
       wsService.on('image_result', handleImageResult);
+      wsService.on('video_progress', handleVideoProgress);
       wsService.on('error', handleError);
       wsService.on('complete', handleComplete);
 
@@ -112,6 +119,7 @@ function InputForm({ onTaskCreated, onAudioCache, onImageCache }) {
         wsService.off('status', handleStatus);
         wsService.off('tts_result', handleTTSResult);
         wsService.off('image_result', handleImageResult);
+        wsService.off('video_progress', handleVideoProgress);
         wsService.off('error', handleError);
         wsService.off('complete', handleComplete);
         // 注意：不调用 wsService.disconnect()，保持连接活跃
