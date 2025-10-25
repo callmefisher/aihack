@@ -111,8 +111,106 @@ class QiniuImageService:
             return response.json()
 
 
+class QiniuVideoService:
+    """七牛云视频生成服务"""
+    
+    def __init__(self):
+        self.api_url = "https://openai.qiniu.com/v1/videos/generations"
+        self.api_token = settings.QINIU_API_KEY
+    
+    async def generate_video(self, prompt: str, image_base64: str) -> Dict[str, Any]:
+        """
+        调用七牛云视频生成API
+        
+        Args:
+            prompt: 视频生成提示词
+            image_base64: base64编码的图片数据
+            
+        Returns:
+            API响应数据，包含视频生成任务ID
+        """
+        headers = {
+            "Authorization": f"Bearer {self.api_token}",
+            "Content-Type": "application/json"
+        }
+        
+        payload = {
+            "instances": [
+                {
+                    "prompt": prompt,
+                    "image": {
+                        "bytesBase64Encoded": image_base64,
+                        "mimeType": "image/png"
+                    }
+                }
+            ],
+            "parameters": {
+                "generateAudio": True,
+                "durationSeconds": 8,
+                "sampleCount": 1
+            },
+            "model": "veo-3.0-fast-generate-preview"
+        }
+        
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                self.api_url,
+                headers=headers,
+                json=payload
+            )
+            response.raise_for_status()
+            return response.json()
+    
+    async def check_video_status(self, video_id: str) -> Dict[str, Any]:
+        """
+        查询视频生成状态
+        
+        Args:
+            video_id: 视频生成任务ID
+            
+        Returns:
+            API响应数据，包含视频生成状态和URL
+        """
+        headers = {
+            "Authorization": f"Bearer {self.api_token}",
+            "Content-Type": "application/json"
+        }
+        
+        url = f"{self.api_url}/{video_id}"
+        
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(url, headers=headers)
+            response.raise_for_status()
+            return response.json()
+    
+    async def poll_video_status(self, video_id: str, max_attempts: int = 60, interval: int = 5) -> Dict[str, Any]:
+        """
+        周期性查询视频生成状态，直到完成
+        
+        Args:
+            video_id: 视频生成任务ID
+            max_attempts: 最大查询次数
+            interval: 查询间隔（秒）
+            
+        Returns:
+            完成后的API响应数据
+        """
+        for attempt in range(max_attempts):
+            result = await self.check_video_status(video_id)
+            
+            if result.get("status") == "Completed":
+                return result
+            elif result.get("status") == "Failed":
+                raise Exception(f"视频生成失败: {result.get('message', '未知错误')}")
+            
+            await asyncio.sleep(interval)
+        
+        raise Exception(f"视频生成超时，已尝试 {max_attempts} 次")
+
+
 qiniu_tts = QiniuTTSService()
 qiniu_image = QiniuImageService()
+qiniu_video = QiniuVideoService()
 
 
 @router.websocket("/ws")
@@ -145,7 +243,6 @@ async def websocket_endpoint(websocket: WebSocket):
                 
                 # 处理TTS请求
                 if action == "tts":
-                    # 发送处理开始消息
                     await websocket.send_json({
                         "type": "status",
                         "message": "开始处理TTS和图片生成...",
@@ -153,7 +250,6 @@ async def websocket_endpoint(websocket: WebSocket):
                         "paragraph_number": paragraph_number
                     })
                     
-                    # 异步非阻塞方式处理图片生成
                     async def generate_images_background():
                         """后台生成图片，不阻塞TTS返回"""
                         try:
@@ -164,6 +260,37 @@ async def websocket_endpoint(websocket: WebSocket):
                                 "text": text,
                                 "paragraph_number": paragraph_number
                             })
+                            
+                            async def generate_video_background():
+                                """后台生成视频，不阻塞图片返回"""
+                                try:
+                                    if image_result.get("data") and len(image_result["data"]) > 0:
+                                        first_image_base64 = image_result["data"][0].get("b64_json", "")
+                                        
+                                        video_init_result = await qiniu_video.generate_video(text, first_image_base64)
+                                        video_id = video_init_result.get("id")
+                                        
+                                        if video_id:
+                                            video_final_result = await qiniu_video.poll_video_status(video_id)
+                                            
+                                            if video_final_result.get("status") == "Completed":
+                                                videos = video_final_result.get("data", {}).get("videos", [])
+                                                if videos and len(videos) > 0:
+                                                    video_url = videos[0].get("url")
+                                                    await websocket.send_json({
+                                                        "type": "video_result",
+                                                        "video_url": video_url,
+                                                        "paragraph_number": paragraph_number
+                                                    })
+                                except Exception as e:
+                                    await websocket.send_json({
+                                        "type": "error",
+                                        "message": f"视频生成失败: {str(e)}",
+                                        "paragraph_number": paragraph_number
+                                    })
+                            
+                            asyncio.create_task(generate_video_background())
+                            
                         except httpx.TimeoutException as e:
                             await websocket.send_json({
                                 "type": "error",
@@ -183,14 +310,11 @@ async def websocket_endpoint(websocket: WebSocket):
                                 "paragraph_number": paragraph_number
                             })
                     
-                    # 启动后台图片生成任务（不等待完成）
                     asyncio.create_task(generate_images_background())
                     
                     try:
-                        # 立即处理TTS，不等待图片生成
                         tts_result = await qiniu_tts.text_to_speech(text)
                         
-                        # 立即发送TTS结果
                         await websocket.send_json({
                             "type": "tts_result",
                             "data": tts_result,
