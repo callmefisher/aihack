@@ -3,7 +3,7 @@ import './ContentDisplay.css';
 import { generateVideo } from '../services/api';
 import wsService from '../services/websocket';
 
-function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap, imageCacheMap, autoPlayAudio }) {
+function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap, imageCacheMap, autoPlayAudio, audioQueueMap, imageQueueMap }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState({});
   const [audioPlaying, setAudioPlaying] = useState(null);
@@ -13,6 +13,8 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap, i
   const [currentImageIndex, setCurrentImageIndex] = useState({});
   const [useWebSocket, setUseWebSocket] = useState(true);
   const [videoCacheMap, setVideoCacheMap] = useState({});
+  const [audioQueueIndex, setAudioQueueIndex] = useState({});
+  const [imageQueueIndex, setImageQueueIndex] = useState({});
 
   useEffect(() => {
     if (paragraphs && paragraphs.length > 0) {
@@ -434,8 +436,10 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap, i
 
   useEffect(() => {
     if (autoPlayAudio && autoPlayAudio.paragraphNumber && autoPlayAudio.audioUrl) {
-      const index = autoPlayAudio.paragraphNumber - 1;
-      console.log(`自动播放音频: 段落 ${autoPlayAudio.paragraphNumber}, 索引=${index}`);
+      const paragraphNumber = autoPlayAudio.paragraphNumber;
+      const index = paragraphNumber - 1;
+      const sequenceNumber = autoPlayAudio.sequenceNumber !== undefined ? autoPlayAudio.sequenceNumber : 0;
+      console.log(`自动播放音频: 段落 ${paragraphNumber}, 序列号 ${sequenceNumber}, 索引=${index}`);
       
       if (currentAudio) {
         currentAudio.pause();
@@ -444,20 +448,45 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap, i
       
       const audio = new Audio(autoPlayAudio.audioUrl);
       audio.play().then(() => {
-        console.log(`✅ 音频自动播放开始: 段落 ${autoPlayAudio.paragraphNumber}`);
+        console.log(`✅ 音频自动播放开始: 段落 ${paragraphNumber}, 序列号 ${sequenceNumber}`);
         setAudioPlaying(index);
         setCurrentAudio(audio);
         
         audio.onended = () => {
-          console.log(`音频播放结束: 段落 ${autoPlayAudio.paragraphNumber}`);
+          console.log(`音频播放结束: 段落 ${paragraphNumber}, 序列号 ${sequenceNumber}`);
           setAudioPlaying(null);
           setCurrentAudio(null);
+          
+          if (audioQueueMap && audioQueueMap[paragraphNumber]) {
+            const queue = audioQueueMap[paragraphNumber];
+            const currentIndex = queue.findIndex(item => item.sequenceNumber === sequenceNumber);
+            
+            if (currentIndex !== -1 && currentIndex + 1 < queue.length) {
+              const nextItem = queue[currentIndex + 1];
+              console.log(`播放下一个序列: 段落 ${paragraphNumber}, 序列号 ${nextItem.sequenceNumber}`);
+              
+              const nextAudio = new Audio(nextItem.audioUrl);
+              nextAudio.play().then(() => {
+                console.log(`✅ 下一个音频播放开始: 段落 ${paragraphNumber}, 序列号 ${nextItem.sequenceNumber}`);
+                setAudioPlaying(index);
+                setCurrentAudio(nextAudio);
+                
+                nextAudio.onended = () => {
+                  console.log(`音频播放结束: 段落 ${paragraphNumber}, 序列号 ${nextItem.sequenceNumber}`);
+                  setAudioPlaying(null);
+                  setCurrentAudio(null);
+                };
+              }).catch(error => {
+                console.error(`❌ 播放下一个音频失败:`, error);
+              });
+            }
+          }
         };
       }).catch(error => {
         console.error(`❌ 自动播放音频失败:`, error);
       });
     }
-  }, [autoPlayAudio]);
+  }, [autoPlayAudio, audioQueueMap]);
 
   if (!paragraphs || paragraphs.length === 0) {
     return (

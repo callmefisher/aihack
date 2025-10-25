@@ -16,6 +16,9 @@ function App() {
   const [imageCacheMap, setImageCacheMap] = useState({});
   const [videoCacheMap, setVideoCacheMap] = useState({});
   const [autoPlayAudio, setAutoPlayAudio] = useState(null);
+  const [audioQueueMap, setAudioQueueMap] = useState({});
+  const [imageQueueMap, setImageQueueMap] = useState({});
+  const [videoQueueMap, setVideoQueueMap] = useState({});
 
   const handleTaskCreated = (id, text) => {
     setTaskId(id);
@@ -24,29 +27,52 @@ function App() {
     setAudioCacheMap({});
     setImageCacheMap({});
     setVideoCacheMap({});
+    setAudioQueueMap({});
+    setImageQueueMap({});
+    setVideoQueueMap({});
     
     const splitParagraphs = text.split(/\n+/).filter(p => p.trim().length > 0);
     setParagraphs(splitParagraphs);
     setShowContent(true);
   };
 
-  const handleAudioCache = (paragraphNumber, audioUrl, autoPlay = false) => {
+  const handleAudioCache = (paragraphNumber, audioUrl, autoPlay = false, sequenceNumber = 0) => {
+    setAudioQueueMap(prev => {
+      const queue = prev[paragraphNumber] || [];
+      const newItem = { sequenceNumber, audioUrl, timestamp: Date.now() };
+      const updatedQueue = [...queue, newItem].sort((a, b) => a.sequenceNumber - b.sequenceNumber);
+      return {
+        ...prev,
+        [paragraphNumber]: updatedQueue
+      };
+    });
+    
     setAudioCacheMap(prev => ({
       ...prev,
       [paragraphNumber]: audioUrl
     }));
-    console.log(`缓存音频: 段落 ${paragraphNumber}, 自动播放=${autoPlay}`);
+    console.log(`缓存音频: 段落 ${paragraphNumber}, 序列号 ${sequenceNumber}, 自动播放=${autoPlay}`);
     if (autoPlay) {
-      setAutoPlayAudio({ paragraphNumber, audioUrl, timestamp: Date.now() });
+      setAutoPlayAudio({ paragraphNumber, audioUrl, sequenceNumber, timestamp: Date.now() });
     }
   };
 
-  const handleImageCache = (paragraphNumber, imageUrls) => {
+  const handleImageCache = (paragraphNumber, imageUrls, sequenceNumber = 0) => {
+    setImageQueueMap(prev => {
+      const queue = prev[paragraphNumber] || [];
+      const newItem = { sequenceNumber, imageUrls, timestamp: Date.now() };
+      const updatedQueue = [...queue, newItem].sort((a, b) => a.sequenceNumber - b.sequenceNumber);
+      return {
+        ...prev,
+        [paragraphNumber]: updatedQueue
+      };
+    });
+    
     setImageCacheMap(prev => ({
       ...prev,
       [paragraphNumber]: imageUrls
     }));
-    console.log(`缓存图片: 段落 ${paragraphNumber}, 图片数量=${imageUrls.length}`);
+    console.log(`缓存图片: 段落 ${paragraphNumber}, 序列号 ${sequenceNumber}, 图片数量=${imageUrls.length}`);
   };
 
   const handleTaskComplete = (url) => {
@@ -61,16 +87,21 @@ function App() {
     setParagraphs(null);
     setShowContent(false);
     
-    Object.values(audioCacheMap).forEach(url => {
-      try {
-        URL.revokeObjectURL(url);
-      } catch (e) {
-        console.error('清理URL失败:', e);
-      }
+    Object.values(audioQueueMap).forEach(queue => {
+      queue.forEach(item => {
+        try {
+          URL.revokeObjectURL(item.audioUrl);
+        } catch (e) {
+          console.error('清理URL失败:', e);
+        }
+      });
     });
     setAudioCacheMap({});
     setImageCacheMap({});
     setVideoCacheMap({});
+    setAudioQueueMap({});
+    setImageQueueMap({});
+    setVideoQueueMap({});
   };
 
   return (
@@ -100,7 +131,7 @@ function App() {
           </div>
         )}
         
-        <ContentDisplay taskId={taskId} paragraphs={paragraphs} onProgressUpdate={setProgress} audioCacheMap={audioCacheMap} imageCacheMap={imageCacheMap} autoPlayAudio={autoPlayAudio} />
+        <ContentDisplay taskId={taskId} paragraphs={paragraphs} onProgressUpdate={setProgress} audioCacheMap={audioCacheMap} imageCacheMap={imageCacheMap} autoPlayAudio={autoPlayAudio} audioQueueMap={audioQueueMap} imageQueueMap={imageQueueMap} />
         
         {taskCompleted && videoUrl && (
           <VideoPlayer 
