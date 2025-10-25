@@ -648,7 +648,7 @@ async def websocket_endpoint(websocket: WebSocket):
                         try:
                             # 使用LLM将文本转换为关键词作为视频生成提示词
                             llm_result = await qiniu_llm.simplify_text_to_keywords(text)
-                            video_prompt = llm_result.get("keywords", text[:40])
+                            video_prompt = llm_result.get("keywords", text[:200])
                             
                             print(f"step1 image2video request - original text: {text}")
                             print(f"step1 image2video request - LLM generated prompt: {video_prompt}")
