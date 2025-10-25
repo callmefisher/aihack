@@ -493,44 +493,45 @@ async def websocket_endpoint(websocket: WebSocket):
                     })
                     
                     # 使用完整段落文本生成图片（只在第一个序列时生成）
-                    async def generate_images_background(full_paragraph_text):
+                    async def generate_images_background(full_paragraph_text, para_num):
                         """后台生成图片，使用完整段落文本，不阻塞TTS返回"""
                         try:
-                            print(f"开始生成图片，使用完整段落文本，长度={len(full_paragraph_text)}")
+                            print(f"开始生成图片，使用完整段落文本，长度={len(full_paragraph_text)}，段落号={para_num}")
                             image_result = await qiniu_image.text_to_images(full_paragraph_text, qiniu_llm)
                             await websocket.send_json({
                                 "type": "image_result",
                                 "data": image_result,
                                 "text": full_paragraph_text,
-                                "paragraph_number": paragraph_number,
+                                "paragraph_number": para_num,
                                 "sequence_number": 0  # 图片始终标记为序列0
                             })
-                            print(f"图片生成成功，段落={paragraph_number}")
+                            print(f"图片生成成功，段落={para_num}")
                             
                         except httpx.TimeoutException as e:
                             await websocket.send_json({
                                 "type": "error",
                                 "message": f"图片生成超时: {str(e)}",
-                                "paragraph_number": paragraph_number,
+                                "paragraph_number": para_num,
                                 "sequence_number": 0
                             })
                         except httpx.HTTPError as e:
                             await websocket.send_json({
                                 "type": "error",
                                 "message": f"图片生成失败: {str(e)}",
-                                "paragraph_number": paragraph_number,
+                                "paragraph_number": para_num,
                                 "sequence_number": 0
                             })
                         except Exception as e:
                             await websocket.send_json({
                                 "type": "error",
                                 "message": f"图片生成失败: {str(e)}",
-                                "paragraph_number": paragraph_number,
+                                "paragraph_number": para_num,
                                 "sequence_number": 0
                             })
                     
                     # 只在接收到段落时生成一次图片（使用完整段落文本）
-                    asyncio.create_task(generate_images_background(text))
+                    # 传递paragraph_number作为参数避免闭包问题
+                    asyncio.create_task(generate_images_background(text, paragraph_number))
                     
                     def split_text_by_punctuation(text: str) -> List[str]:
                         """

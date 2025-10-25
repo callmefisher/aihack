@@ -8,6 +8,7 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap, i
   const [loading, setLoading] = useState({});
   const [audioPlaying, setAudioPlaying] = useState(null);
   const [currentAudio, setCurrentAudio] = useState(null);
+  const [currentPlayingParagraph, setCurrentPlayingParagraph] = useState(null);
   const [zoomedImage, setZoomedImage] = useState(null);
   const [speechPlaying, setSpeechPlaying] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState({});
@@ -171,6 +172,7 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap, i
         setCurrentAudio(null);
       }
       setAudioPlaying(null);
+      setCurrentPlayingParagraph(null);
       return;
     }
 
@@ -188,24 +190,26 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap, i
 
     if (audioCacheMap && audioCacheMap[paragraphNumber]) {
       console.log(`使用缓存的音频: 段落 ${paragraphNumber}`);
-      playAudio(audioCacheMap[paragraphNumber], index);
+      playAudio(audioCacheMap[paragraphNumber], index, paragraphNumber);
       return;
     }
 
     if (item.audioUrl) {
-      playAudio(item.audioUrl, index);
+      playAudio(item.audioUrl, index, paragraphNumber);
     }
   };
 
-  const playAudio = (url, index) => {
+  const playAudio = (url, index, paragraphNumber) => {
     const audio = new Audio(url);
     audio.play();
     setAudioPlaying(index);
     setCurrentAudio(audio);
+    setCurrentPlayingParagraph(paragraphNumber);
     
     audio.onended = () => {
       setAudioPlaying(null);
       setCurrentAudio(null);
+      setCurrentPlayingParagraph(null);
     };
   };
 
@@ -214,6 +218,7 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap, i
       console.log(`队列播放完成: 段落 ${paragraphNumber}`);
       setAudioPlaying(null);
       setCurrentAudio(null);
+      setCurrentPlayingParagraph(null);
       return;
     }
 
@@ -224,6 +229,7 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap, i
     audio.play();
     setAudioPlaying(itemIndex);
     setCurrentAudio(audio);
+    setCurrentPlayingParagraph(paragraphNumber);
     
     audio.onended = () => {
       console.log(`序列播放完成: 段落 ${paragraphNumber}, 序列号 ${currentItem.sequenceNumber}`);
@@ -475,10 +481,15 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap, i
       const sequenceNumber = autoPlayAudio.sequenceNumber !== undefined ? autoPlayAudio.sequenceNumber : 0;
       console.log(`收到自动播放音频请求: 段落 ${paragraphNumber}, 序列号 ${sequenceNumber}, 索引=${index}`);
       
-      // 关键修复：如果当前正在播放音频，不要打断，而是等待当前播放完成
+      // Bug #2 修复：如果当前正在播放音频，检查段落号
       if (currentAudio && !currentAudio.paused) {
-        console.log(`⚠️  当前正在播放音频，新音频加入队列等待: 段落 ${paragraphNumber}, 序列号 ${sequenceNumber}`);
-        // 音频已经在队列中，会在当前音频播放结束时自动播放
+        // 如果正在播放的是不同段落，不要打断，等待当前段落完成
+        if (currentPlayingParagraph !== null && currentPlayingParagraph !== paragraphNumber) {
+          console.log(`⚠️  当前正在播放段落 ${currentPlayingParagraph}，不打断。新段落 ${paragraphNumber} 的音频将等待`);
+          return;
+        }
+        // 如果是同一段落的新序列，也让它等待，会在当前序列结束时自动播放
+        console.log(`⚠️  当前正在播放段落 ${paragraphNumber} 的音频，新序列 ${sequenceNumber} 加入队列等待`);
         return;
       }
       
@@ -487,6 +498,7 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap, i
         console.log(`✅ 音频自动播放开始: 段落 ${paragraphNumber}, 序列号 ${sequenceNumber}`);
         setAudioPlaying(index);
         setCurrentAudio(audio);
+        setCurrentPlayingParagraph(paragraphNumber);
         
         audio.onended = () => {
           console.log(`音频播放结束: 段落 ${paragraphNumber}, 序列号 ${sequenceNumber}`);
@@ -505,23 +517,26 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap, i
               console.log(`段落 ${paragraphNumber} 的所有序列已播放完成`);
               setAudioPlaying(null);
               setCurrentAudio(null);
+              setCurrentPlayingParagraph(null);
             }
           } else {
             setAudioPlaying(null);
             setCurrentAudio(null);
+            setCurrentPlayingParagraph(null);
           }
         };
       }).catch(error => {
         console.error(`❌ 自动播放音频失败:`, error);
       });
     }
-  }, [autoPlayAudio, audioQueueMap]);
+  }, [autoPlayAudio, audioQueueMap, currentPlayingParagraph]);
 
   const playAudioQueueFromIndex = (queue, startIndex, itemIndex, paragraphNumber) => {
     if (startIndex >= queue.length) {
       console.log(`队列播放完成: 段落 ${paragraphNumber}`);
       setAudioPlaying(null);
       setCurrentAudio(null);
+      setCurrentPlayingParagraph(null);
       return;
     }
 
@@ -533,6 +548,7 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap, i
       console.log(`✅ 音频播放开始: 段落 ${paragraphNumber}, 序列号 ${currentItem.sequenceNumber}`);
       setAudioPlaying(itemIndex);
       setCurrentAudio(audio);
+      setCurrentPlayingParagraph(paragraphNumber);
       
       audio.onended = () => {
         console.log(`序列播放完成: 段落 ${paragraphNumber}, 序列号 ${currentItem.sequenceNumber}`);
