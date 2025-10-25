@@ -150,13 +150,13 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap })
         setItems(prev => {
           const updated = [...prev];
           if (updated[index] && currentProgress < 90) {
-            const increment = Math.random() * 3 + 1;
+            const increment = Math.random() * 1.5 + 0.5;
             currentProgress = Math.min(90, currentProgress + increment);
-            updated[index] = { ...updated[index], progress: Math.floor(currentProgress) };
+            updated[index] = { ...updated[index], progress: currentProgress };
           }
           return updated;
         });
-      }, 200);
+      }, 100);
 
       const response = await generateImage(taskId, items[index].text, index + 1);
       
