@@ -13,6 +13,7 @@ function App() {
   const [showContent, setShowContent] = useState(false);
   const [progress, setProgress] = useState({ completed: 0, total: 0 });
   const [audioCacheMap, setAudioCacheMap] = useState({});
+  const [imageCacheMap, setImageCacheMap] = useState({});
   const [videoCacheMap, setVideoCacheMap] = useState({});
   const [autoPlayAudio, setAutoPlayAudio] = useState(null);
 
@@ -21,6 +22,7 @@ function App() {
     setTaskCompleted(false);
     setVideoUrl(null);
     setAudioCacheMap({});
+    setImageCacheMap({});
     setVideoCacheMap({});
     
     const splitParagraphs = text.split(/\n+/).filter(p => p.trim().length > 0);
@@ -37,6 +39,14 @@ function App() {
     if (autoPlay) {
       setAutoPlayAudio({ paragraphNumber, audioUrl, timestamp: Date.now() });
     }
+  };
+
+  const handleImageCache = (paragraphNumber, imageUrls) => {
+    setImageCacheMap(prev => ({
+      ...prev,
+      [paragraphNumber]: imageUrls
+    }));
+    console.log(`缓存图片: 段落 ${paragraphNumber}, 图片数量=${imageUrls.length}`);
   };
 
   const handleTaskComplete = (url) => {
@@ -59,6 +69,7 @@ function App() {
       }
     });
     setAudioCacheMap({});
+    setImageCacheMap({});
     setVideoCacheMap({});
   };
 
@@ -75,7 +86,7 @@ function App() {
       </header>
 
       <main className="App-main">
-        <InputForm onTaskCreated={handleTaskCreated} onAudioCache={handleAudioCache} />
+        <InputForm onTaskCreated={handleTaskCreated} onAudioCache={handleAudioCache} onImageCache={handleImageCache} />
         
         {showContent && progress && (
           <div className="progress-container">
@@ -89,7 +100,7 @@ function App() {
           </div>
         )}
         
-        <ContentDisplay taskId={taskId} paragraphs={paragraphs} onProgressUpdate={setProgress} audioCacheMap={audioCacheMap} autoPlayAudio={autoPlayAudio} />
+        <ContentDisplay taskId={taskId} paragraphs={paragraphs} onProgressUpdate={setProgress} audioCacheMap={audioCacheMap} imageCacheMap={imageCacheMap} autoPlayAudio={autoPlayAudio} />
         
         {taskCompleted && videoUrl && (
           <VideoPlayer 

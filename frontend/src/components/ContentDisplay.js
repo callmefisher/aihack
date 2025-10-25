@@ -3,7 +3,7 @@ import './ContentDisplay.css';
 import { generateVideo } from '../services/api';
 import wsService from '../services/websocket';
 
-function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap, autoPlayAudio }) {
+function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap, imageCacheMap, autoPlayAudio }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState({});
   const [audioPlaying, setAudioPlaying] = useState(null);
@@ -113,6 +113,30 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap, a
       console.log('⚠️  WebSocket未连接，跳过事件监听器注册');
     }
   }, [useWebSocket, handleImageResult]);
+
+  useEffect(() => {
+    if (imageCacheMap && Object.keys(imageCacheMap).length > 0) {
+      console.log('=== 应用缓存的图片 ===');
+      console.log('imageCacheMap:', imageCacheMap);
+      
+      setItems(prev => {
+        const updated = [...prev];
+        Object.entries(imageCacheMap).forEach(([paragraphNumber, imageUrls]) => {
+          const index = parseInt(paragraphNumber) - 1;
+          if (index >= 0 && index < updated.length) {
+            console.log(`应用缓存图片到段落 ${paragraphNumber}，图片数量=${imageUrls.length}`);
+            updated[index] = {
+              ...updated[index],
+              images: imageUrls,
+              loadingImage: false,
+              progress: 0
+            };
+          }
+        });
+        return updated;
+      });
+    }
+  }, [imageCacheMap]);
 
   const processTestMode = (itemsList) => {
     const updatedItems = itemsList.map((item, index) => ({
