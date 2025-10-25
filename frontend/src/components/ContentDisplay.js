@@ -145,15 +145,18 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap })
     });
 
     try {
+      let currentProgress = 0;
       const progressInterval = setInterval(() => {
         setItems(prev => {
           const updated = [...prev];
-          if (updated[index] && updated[index].progress < 90) {
-            updated[index] = { ...updated[index], progress: updated[index].progress + 10 };
+          if (updated[index] && currentProgress < 90) {
+            const increment = Math.random() * 3 + 1;
+            currentProgress = Math.min(90, currentProgress + increment);
+            updated[index] = { ...updated[index], progress: Math.floor(currentProgress) };
           }
           return updated;
         });
-      }, 500);
+      }, 200);
 
       const response = await generateImage(taskId, items[index].text, index + 1);
       
@@ -350,12 +353,14 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap })
     });
 
     try {
+      let currentProgress = 0;
       const progressInterval = setInterval(() => {
         setItems(prev => {
           const updated = [...prev];
-          if (updated[index] && updated[index].progress < 90) {
-            const randomIncrement = Math.random() * 1.5 + 0.5;
-            updated[index] = { ...updated[index], progress: Math.min(updated[index].progress + randomIncrement, 90) };
+          if (updated[index] && currentProgress < 90) {
+            const increment = Math.random() * 2 + 0.5;
+            currentProgress = Math.min(90, currentProgress + increment);
+            updated[index] = { ...updated[index], progress: Math.floor(currentProgress) };
           }
           return updated;
         });

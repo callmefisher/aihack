@@ -69,11 +69,7 @@ class WebSocketService {
     if (this.reconnectAttempts < this.maxReconnectAttempts) {
       this.reconnectAttempts++;
       this.connectionStatus = 'reconnecting';
-      this.emit('connection_status', { 
-        status: 'reconnecting', 
-        attempt: this.reconnectAttempts,
-        maxAttempts: this.maxReconnectAttempts 
-      });
+      this.emit('connection_status', { status: 'reconnecting', attempt: this.reconnectAttempts, max: this.maxReconnectAttempts });
       console.log(`尝试重新连接... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
       
       setTimeout(() => {
@@ -139,12 +135,6 @@ class WebSocketService {
     const { type, ...payload } = data;
     
     switch (type) {
-      case 'pong':
-        if (this.heartbeatTimeout) {
-          clearTimeout(this.heartbeatTimeout);
-          this.heartbeatTimeout = null;
-        }
-        break;
       case 'status':
         this.emit('status', payload);
         break;
@@ -213,30 +203,21 @@ class WebSocketService {
   }
 
   /**
-   * 启动心跳检测
+   * 关闭WebSocket连接
    */
   startHeartbeat() {
     this.stopHeartbeat();
-    
     this.heartbeatInterval = setInterval(() => {
       if (this.ws && this.ws.readyState === WebSocket.OPEN) {
         this.ws.send(JSON.stringify({ action: 'ping' }));
-        
         this.heartbeatTimeout = setTimeout(() => {
           console.warn('心跳超时，连接可能已断开');
-          this.connectionStatus = 'timeout';
-          this.emit('connection_status', { status: 'timeout' });
-          if (this.ws) {
-            this.ws.close();
-          }
+          this.ws.close();
         }, 5000);
       }
     }, 30000);
   }
 
-  /**
-   * 停止心跳检测
-   */
   stopHeartbeat() {
     if (this.heartbeatInterval) {
       clearInterval(this.heartbeatInterval);
@@ -248,9 +229,6 @@ class WebSocketService {
     }
   }
 
-  /**
-   * 关闭WebSocket连接
-   */
   disconnect() {
     this.stopHeartbeat();
     if (this.ws) {
@@ -268,9 +246,6 @@ class WebSocketService {
     return this.ws && this.ws.readyState === WebSocket.OPEN;
   }
 
-  /**
-   * 获取连接状态
-   */
   getConnectionStatus() {
     return this.connectionStatus;
   }
