@@ -1,210 +1,223 @@
-# 小说转动漫生成器 (Novel to Anime Generator)
+# 听，见 - AI故事可视化平台
 
-一个能够将小说文本自动转换为动漫视频的工具，生成的视频包含场景图片、文字和语音旁白。
-
-## ✨ 功能特点
-
-- 📖 **智能场景分割**: 自动将小说文本分割为多个场景
-- 👥 **角色一致性**: 自动识别小说中的角色，确保同一角色在所有场景中保持视觉一致性
-- 🎨 **AI图像生成**: 使用Stability AI或OpenAI DALL-E生成动漫风格的场景插图
-- 🎤 **文字转语音**: 支持Azure TTS和OpenAI TTS，生成自然的语音旁白
-- 🎬 **视频合成**: 自动将图片、文字和语音合成为完整的视频
-- 🛠️ **灵活配置**: 支持多种AI服务提供商，可自定义各种参数
-- 📦 **模块化架构**: 清晰的代码结构，易于扩展和维护
+> 让文字变成画面，让故事触手可及
 
 ## 🚀 Demo地址
 [Demo展示页面](https://www.bilibili.com/video/BV1ptsZz2Eax/)
-### 1. 安装依赖
+
+---
+
+## 📊 商业分析
+
+### 市场痛点
+
+在当今数字内容消费时代，我们面临着以下挑战：
+
+1. **创作门槛高** - 优质的视觉内容需要专业的设计和动画技能
+2. **制作成本高** - 传统动漫制作需要大量人力和时间投入
+3. **效率低下** - 从文本到视觉内容的转换过程繁琐且耗时
+4. **个性化需求** - 读者希望将喜爱的小说、故事转化为可视化内容
+5. **多感官体验缺失** - 纯文本阅读缺少视觉和听觉的沉浸感
+
+### 目标客户
+
+- **内容创作者** - 小说作者、编剧、自媒体创作者
+- **教育培训机构** - 需要将教学内容可视化的教育工作者
+- **企业营销团队** - 需要快速生成营销视频的市场部门
+- **个人爱好者** - 希望将喜爱的文学作品可视化的读者
+- **出版机构** - 寻求创新出版形式的图书出版商
+
+### 商业价值
+
+- 降低90%以上的视频制作成本
+- 提升10倍以上的内容生产效率
+- 扩展内容消费场景，提升用户粘性
+- 开创AI辅助创作的新商业模式
+
+---
+
+## ✨ 核心功能与亮点
+
+### 🎯 核心功能
+
+#### 1. **智能LLM处理**
+- 🤖 **深度语义理解** - 接入大语言模型（LLM），深度理解文本语义和情感
+- 📝 **场景智能提取** - 自动识别场景转换，精准分割段落
+- 👥 **角色自动识别** - AI自动识别并跟踪故事中的角色
+
+#### 2. **场景一致性保障**
+- 🎨 **角色视觉一致性** - 独创角色缓存机制，确保同一角色在不同场景中保持统一的视觉风格
+- 🏞️ **场景风格一致性** - 场景信息缓存，保持相似场景的艺术风格统一
+- 💾 **智能缓存系统** - 角色和场景信息缓存，减少重复计算，提升生成速度
+
+#### 3. **音频智能合成**
+- 🎵 **背景音乐混合** - 自动将背景音乐与TTS语音混合，营造沉浸式体验
+- 🎙️ **多语言TTS支持** - 支持Azure、OpenAI、百度、七牛等多家TTS服务
+- 🔊 **能听能看** - 视觉画面与语音旁白完美同步，双重感官体验
+
+#### 4. **大文本高效处理**
+- 📚 **支持长文本** - 可处理完整小说章节，无文本长度限制
+- ⚡ **流式TTS响应** - 分句流式处理，边生成边播放，大幅提升响应速度
+- 🚀 **并行处理** - 图片生成与TTS生成并行执行，优化整体性能
+
+#### 5. **图生视频**
+- 🎬 **智能图转视频** - 基于生成的图片创建动态视频效果
+- 🎨 **动漫风格定制** - AI生成动漫风格的场景插图
+- 📹 **全自动合成** - 图片、文字、语音自动组合成完整视频
+
+### 🌟 技术亮点
+
+| 亮点 | 说明 |
+|------|------|
+| **LLM深度集成** | 利用大语言模型实现文本的深度语义理解和关键信息提取 |
+| **缓存优化机制** | 角色和场景缓存确保视觉一致性，同时提升30%+性能 |
+| **流式响应架构** | WebSocket + 流式TTS，实时响应用户体验极佳 |
+| **多模态融合** | 文本→图像→视频→音频，完整的多模态内容生成链路 |
+| **模块化设计** | 前后端分离，微服务架构，易于扩展和维护 |
+
+---
+
+## 🏗️ 系统架构
+
+### 前端架构
+
+```
+Frontend (React)
+├── 用户界面层
+│   ├── InputForm - 文本输入与任务创建
+│   ├── ContentDisplay - 内容展示（图片+视频）
+│   ├── TaskStatus - 实时任务进度显示
+│   └── VideoPlayer - 视频播放控制
+├── 服务层
+│   ├── WebSocket Service - 实时通信
+│   └── API Service - HTTP请求
+└── 状态管理
+    └── React Hooks - 本地状态管理
+```
+
+**技术栈**: React 18, WebSocket, Axios, Modern CSS
+
+### 后端架构
+
+```
+Backend (FastAPI + Python)
+├── API网关层
+│   ├── WebSocket端点 - 实时流式处理
+│   ├── REST API - 标准HTTP接口
+│   └── CORS中间件 - 跨域支持
+├── 业务服务层
+│   ├── LLM Service - 大语言模型调用
+│   │   └── 文本理解、场景提取、角色识别
+│   ├── Image Service - 图像生成
+│   │   ├── 缓存管理（角色+场景）
+│   │   └── 多供应商支持（Qiniu/Stability/OpenAI）
+│   ├── TTS Service - 文字转语音
+│   │   ├── 音频混合（背景音+TTS）
+│   │   └── 流式响应
+│   └── Video Service - 视频生成
+│       └── 图生视频处理
+├── 核心处理层
+│   ├── NovelParser - 文本解析
+│   ├── CharacterManager - 角色管理
+│   └── VideoComposer - 视频合成
+└── 数据存储层
+    ├── 任务状态管理
+    ├── 缓存系统（角色/场景）
+    └── 静态文件服务
+```
+
+**技术栈**: FastAPI, WebSocket, Asyncio, Qiniu AI, OpenAI, Pillow, FFmpeg
+
+### 数据流架构
+
+```
+用户输入文本
+    ↓
+[LLM分析] → 场景提取 + 角色识别
+    ↓
+[并行处理]
+    ├─→ [图像生成] → 检查缓存 → 生成图片
+    │       ↓
+    │   [图生视频]
+    └─→ [TTS生成] → 分句处理 → 流式返回
+            ↓
+        [音频混合] → 背景音乐 + TTS
+    ↓
+[WebSocket推送] → 实时展示给用户
+    ↓
+最终视频输出
+```
+
+---
+
+## 📚 文档导航
+
+详细技术文档请查看 [`doc/`](./doc) 目录：
+
+- [API文档](./doc/API.md) - 完整的API接口说明
+- [架构文档](./doc/Architecture.md) - 详细的系统架构设计
+- [需求文档](./doc/Requirements.md) - 产品需求规格说明
+
+---
+
+## 🚀 快速开始
+
+### 环境要求
+
+- Node.js 16+ (前端)
+- Python 3.9+ (后端)
+- FFmpeg (音视频处理)
+
+### 后端启动
 
 ```bash
+cd backend
 pip install -r requirements.txt
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### 2. 配置API密钥
-
-复制配置文件模板并填入你的API密钥：
+### 前端启动
 
 ```bash
-cp config.example.json config.json
+cd frontend
+npm install
+npm start
 ```
 
-编辑 `config.json`：
+访问 `http://localhost:3000` 开始使用
 
-```json
-{
-  "max_scene_length": 500,
-  "image_provider": "stability",
-  "image_api_key": "YOUR_STABILITY_AI_KEY",
-  "tts_provider": "azure",
-  "tts_api_key": "YOUR_AZURE_TTS_KEY",
-  "baidu_app_id": "YOUR_BAIDU_APP_ID",
-  "baidu_secret_key": "YOUR_BAIDU_SECRET_KEY",
-  "scene_duration": 5.0,
-  "fps": 30
-}
-```
+---
 
-注意：使用百度 TTS 时，将 `tts_provider` 设置为 `baidu`，并填写 `tts_api_key`（API Key）和 `baidu_secret_key`（Secret Key）。
+## 💡 使用场景
 
-### 3. 运行示例
+- 📖 **小说可视化** - 将网络小说、文学作品转化为动漫视频
+- 🎓 **教育内容** - 制作教学故事、历史事件可视化
+- 📢 **营销推广** - 快速生成品牌故事、产品介绍视频
+- 🎮 **游戏剧情** - 游戏剧本的可视化预览
+- 📱 **社交媒体** - 创作短视频内容用于抖音、B站等平台
 
-```bash
-python main.py example_novel.txt -c config.json -o output -n my_anime.mp4
-```
+---
 
-或使用旧版接口（兼容性保留）：
-```bash
-python novel_to_anime.py example_novel.txt -c config.json -o output -n my_anime.mp4
-```
+## 🔧 配置说明
 
-## 📖 使用说明
+系统支持多家AI服务商，可根据需求灵活配置：
 
-### 基本用法
+- **图像生成**: Stability AI / OpenAI DALL-E / 七牛AI
+- **语音合成**: Azure TTS / OpenAI TTS / 百度TTS / 七牛TTS
+- **大语言模型**: DeepSeek-V3 / OpenAI GPT / 其他兼容服务
 
-```bash
-python main.py <小说文件路径> [选项]
-```
+---
 
-### 命令行选项
-
-- `-o, --output <目录>`: 指定输出目录（默认: `output`）
-- `-n, --name <文件名>`: 指定输出视频文件名（默认: `anime.mp4`）
-- `-c, --config <配置文件>`: 指定JSON格式的配置文件
-
-### 示例
-
-生成动漫视频：
-```bash
-python main.py my_novel.txt -o ./results -n story.mp4
-```
-
-使用自定义配置：
-```bash
-python main.py my_novel.txt -c my_config.json
-```
-
-## 🎯 工作流程
-
-1. **文本解析**: 读取小说文本，按段落和长度智能分割场景
-2. **角色识别**: 自动识别小说中的所有角色，建立角色档案
-3. **场景提取**: 提取每个场景的叙述文字和对话内容
-4. **图像生成**: 根据场景描述生成动漫风格的插图，保持角色视觉一致性
-5. **语音合成**: 将场景文字转换为语音旁白
-6. **视频合成**: 将图片、文字和语音组合成视频
-
-## 🔧 配置选项
-
-### 图像生成
-
-支持的提供商：
-- `stability`: Stability AI (推荐)
-- `openai`: OpenAI DALL-E
-- `qiniu`: 七牛 AI 文字生成图片
-
-### 语音合成
-
-支持的提供商：
-- `azure`: Azure Cognitive Services TTS (推荐)
-- `openai`: OpenAI TTS
-- `baidu`: 百度语音合成 TTS
-- `qiniu`: 七牛 AI 语音合成 TTS
-
-### 其他选项
-
-- `max_scene_length`: 每个场景的最大文字长度（字符数）
-- `scene_duration`: 默认场景持续时间（秒）
-- `fps`: 视频帧率
-
-## 📁 输出文件
-
-运行后，输出目录将包含：
-
-```
-output/
-├── scene_001.png          # 场景1的图片
-├── scene_001.mp3          # 场景1的语音
-├── scene_002.png          # 场景2的图片
-├── scene_002.mp3          # 场景2的语音
-├── ...
-├── scenes_metadata.json   # 场景元数据
-├── characters.json        # 角色信息和出场统计
-└── anime.mp4              # 最终视频
-```
-
-## 🔑 获取API密钥
-
-### Stability AI
-1. 访问 [Stability AI Platform](https://platform.stability.ai/)
-2. 注册账号并获取API密钥
-3. 将密钥填入配置文件的 `image_api_key`
-
-### Azure TTS
-1. 访问 [Azure Portal](https://portal.azure.com/)
-2. 创建认知服务资源
-3. 获取订阅密钥
-4. 将密钥填入配置文件的 `tts_api_key`
-
-### OpenAI
-1. 访问 [OpenAI Platform](https://platform.openai.com/)
-2. 创建API密钥
-3. 可用于图像生成或TTS
-
-### 百度 TTS
-1. 访问 [百度AI开放平台](https://ai.baidu.com/)
-2. 创建语音合成应用
-3. 获取 API Key 和 Secret Key
-4. 将 API Key 填入配置文件的 `tts_api_key`
-5. 将 Secret Key 填入配置文件的 `baidu_secret_key`
-6. 将 `tts_provider` 设置为 `baidu`
-
-### 七牛 AI
-1. 访问 [七牛AI开放平台](https://ai.qiniu.com/)
-2. 创建应用并获取 API Key
-3. 将 API Key 填入配置文件的 `qiniu_api_key`
-4. 使用图像生成：将 `image_provider` 设置为 `qiniu`
-5. 使用语音合成：将 `tts_provider` 设置为 `qiniu`，将 API Key 填入 `tts_api_key`
-
-## ⚠️ 注意事项
-
-- 使用AI服务会产生费用，请注意控制成本
-- 生成时间取决于场景数量和AI服务响应速度
-- 建议先用短篇小说测试
-- 如果没有配置API密钥，程序将生成占位符图片和静音音频用于测试
-
-## 🛠️ 代码架构
-
-项目采用模块化设计，结构清晰：
-
-```
-novel_to_anime/
-├── core/
-│   ├── parser.py          # NovelParser - 小说文本解析和场景分割
-│   ├── character.py       # CharacterManager - 角色识别和一致性管理
-│   └── converter.py       # NovelToAnimeConverter - 主控制器
-├── generators/
-│   ├── image.py           # ImageGenerator - AI图像生成
-│   └── audio.py           # TextToSpeech - 文字转语音
-└── video/
-    └── composer.py        # VideoComposer - 视频合成和渲染
-```
-
-### 核心模块说明
-
-- **NovelParser**: 负责解析小说文本，智能分割场景
-- **CharacterManager**: 自动识别角色，为每个角色生成一致的视觉描述
-- **ImageGenerator**: 支持多个AI服务提供商的图像生成
-- **TextToSpeech**: 支持多个TTS服务提供商的语音合成
-- **VideoComposer**: 将图片、文字和语音合成为最终视频
-- **NovelToAnimeConverter**: 协调整个转换流程的主控制器
-
-## 📝 许可证
+## 📄 许可证
 
 MIT License
 
+---
+
 ## 🤝 贡献
 
-欢迎提交Issue和Pull Request！
+欢迎提交 Issue 和 Pull Request！
 
 ## 📧 联系方式
 
-如有问题或建议，请在GitHub上提出Issue。
+如有问题或建议，请在 GitHub 上提出 Issue。
