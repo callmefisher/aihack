@@ -29,8 +29,7 @@ class QiniuTTSService:
         Returns:
             API响应数据
         """
-        print("hello world1111")
-        print(self.api_token)
+        print("step1 tts apitoken"+self.api_token)
         headers = {
             "Authorization": f"Bearer {self.api_token}",
             "Content-Type": "application/json"
@@ -275,7 +274,7 @@ class QiniuVideoService:
             response.raise_for_status()
             return response.json()
     
-    async def poll_video_status(self, video_id: str, max_attempts: int = 60, interval: int = 5) -> Dict[str, Any]:
+    async def poll_video_status(self, video_id: str, max_attempts: int = 100, interval: int = 5) -> Dict[str, Any]:
         """
         周期性查询视频生成状态，直到完成
         
@@ -419,12 +418,13 @@ async def websocket_endpoint(websocket: WebSocket):
                     async def generate_video_background():
                         """后台生成视频，不阻塞WebSocket"""
                         try:
+                            print("step1 image2video request txt " + text + " image:",image_base64)
                             video_init_result = await qiniu_video.generate_video(text, image_base64)
                             video_id = video_init_result.get("id")
-                            
+                            print("step2 image2video response taskid " + video_id)
                             if video_id:
                                 video_final_result = await qiniu_video.poll_video_status(video_id)
-                                
+                                print("step3 image2video response task status " + video_final_result.get("status") )
                                 if video_final_result.get("status") == "Completed":
                                     videos = video_final_result.get("data", {}).get("videos", [])
                                     if videos and len(videos) > 0:
