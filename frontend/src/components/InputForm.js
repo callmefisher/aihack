@@ -161,6 +161,7 @@ function InputForm({ onTaskCreated, onAudioCache }) {
           setProgress(30);
           
           setTextInput(urlText);
+          setInputType('text');
           
           const paragraphs = urlText.split(/\n+/).filter(p => p.trim().length > 0);
           
