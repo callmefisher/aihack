@@ -8,6 +8,10 @@ from app.core.config import settings
 
 router = APIRouter()
 
+# WebSocket配置
+WEBSOCKET_HEARTBEAT_TIMEOUT = 200000  # 心跳超时时间（秒）
+WEBSOCKET_PING_INTERVAL = 200000  # ping间隔时间（秒）
+
 
 class QiniuTTSService:
     """七牛云TTS服务"""
@@ -331,6 +335,14 @@ async def websocket_endpoint(websocket: WebSocket):
                 print(f"paragraph_number: {paragraph_number}")
                 print(f"task_id: {task_id}")
                 print(f"text_length: {len(text) if text else 0}")
+                
+                # 处理ping请求（心跳保活）
+                if action == "ping":
+                    await websocket.send_json({
+                        "type": "pong",
+                        "message": "心跳响应"
+                    })
+                    continue
                 
                 if not text and action not in ["video"]:
                     await websocket.send_json({
