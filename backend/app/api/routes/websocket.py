@@ -303,9 +303,11 @@ class QiniuImageService:
         
         prompt = await self._simplify_text_to_prompt(text, llm_service)
         
+        prompt_with_style = f"动漫风格, {prompt}"
+        
         payload = {
             "model": "gemini-2.5-flash-image",
-            "prompt": prompt,
+            "prompt": prompt_with_style,
             "n": 3,
             "size": "1024x1024"
         }

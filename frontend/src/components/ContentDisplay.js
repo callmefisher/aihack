@@ -16,6 +16,7 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap, i
   const [videoCacheMap, setVideoCacheMap] = useState({});
   const [audioQueueIndex, setAudioQueueIndex] = useState({});
   const [imageQueueIndex, setImageQueueIndex] = useState({});
+  const processedAutoPlayRef = React.useRef(new Set());
 
   useEffect(() => {
     if (paragraphs && paragraphs.length > 0) {
@@ -479,6 +480,13 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap, i
       const paragraphNumber = autoPlayAudio.paragraphNumber;
       const index = paragraphNumber - 1;
       const sequenceNumber = autoPlayAudio.sequenceNumber !== undefined ? autoPlayAudio.sequenceNumber : 0;
+      const audioKey = `${paragraphNumber}-${sequenceNumber}-${autoPlayAudio.timestamp}`;
+      
+      if (processedAutoPlayRef.current.has(audioKey)) {
+        return;
+      }
+      
+      processedAutoPlayRef.current.add(audioKey);
       console.log(`收到自动播放音频请求: 段落 ${paragraphNumber}, 序列号 ${sequenceNumber}, 索引=${index}`);
       
       // Bug #2 修复：如果当前正在播放音频，检查段落号
