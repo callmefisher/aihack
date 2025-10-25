@@ -567,7 +567,7 @@ async def websocket_endpoint(websocket: WebSocket):
                             print(f"处理句子 {idx + 1}/{len(sentences)}: {sentence[:30]}...")
                             
                             try:
-                                # 传递序列号，只有idx=0时才会混合背景音乐
+                                # 传递idx作为混合音乐的判断依据，只有idx=0时才会混合背景音乐
                                 tts_result = await qiniu_tts.text_to_speech(sentence, sequence_number=idx)
                                 
                                 await websocket.send_json({
