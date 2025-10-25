@@ -393,7 +393,7 @@ class QiniuVideoService:
             response.raise_for_status()
             return response.json()
     
-    async def poll_video_status(self, video_id: str, max_attempts: int = 150, initial_interval: float = 1.0, max_interval: float = 5.0, progress_callback=None) -> Dict[str, Any]:
+    async def poll_video_status(self, video_id: str, max_attempts: int = 1500, initial_interval: float = 1.0, max_interval: float = 3.0, progress_callback=None) -> Dict[str, Any]:
         """
         周期性查询视频生成状态，直到完成（使用智能退避策略）
         
@@ -524,24 +524,78 @@ async def websocket_endpoint(websocket: WebSocket):
                     
                     asyncio.create_task(generate_images_background())
                     
+                    def split_text_by_punctuation(text: str) -> List[str]:
+                        """
+                        根据中文标点符号分割文本
+                        
+                        Args:
+                            text: 要分割的文本
+                            
+                        Returns:
+                            分割后的句子列表
+                        """
+                        import re
+                        sentences = re.split(r'([。！？；])', text)
+                        
+                        result = []
+                        for i in range(0, len(sentences) - 1, 2):
+                            sentence = sentences[i]
+                            if i + 1 < len(sentences):
+                                punctuation = sentences[i + 1]
+                                sentence += punctuation
+                            
+                            sentence = sentence.strip()
+                            if sentence:
+                                result.append(sentence)
+                        
+                        if len(sentences) % 2 == 1:
+                            last_sentence = sentences[-1].strip()
+                            if last_sentence:
+                                result.append(last_sentence)
+                        
+                        return result
+                    
                     try:
-                        tts_result = await qiniu_tts.text_to_speech(text)
+                        sentences = split_text_by_punctuation(text)
+                        print(f"文本已分割为 {len(sentences)} 个句子")
                         
-                        await websocket.send_json({
-                            "type": "tts_result",
-                            "data": tts_result,
-                            "text": text,
-                            "paragraph_number": paragraph_number,
-                            "sequence_number": sequence_number
-                        })
+                        for idx, sentence in enumerate(sentences):
+                            print(f"处理句子 {idx + 1}/{len(sentences)}: {sentence[:30]}...")
+                            
+                            try:
+                                tts_result = await qiniu_tts.text_to_speech(sentence)
+                                
+                                await websocket.send_json({
+                                    "type": "tts_result",
+                                    "data": tts_result,
+                                    "text": sentence,
+                                    "paragraph_number": paragraph_number,
+                                    "sequence_number": idx,
+                                    "sentence_index": idx + 1,
+                                    "total_sentences": len(sentences)
+                                })
+                                
+                                print(f"句子 {idx + 1} TTS完成")
+                                
+                            except httpx.HTTPError as e:
+                                print(f"句子 {idx + 1} TTS失败: {str(e)}")
+                                await websocket.send_json({
+                                    "type": "error",
+                                    "message": f"句子 {idx + 1} TTS处理失败: {str(e)}",
+                                    "paragraph_number": paragraph_number,
+                                    "sequence_number": idx
+                                })
+                            except Exception as e:
+                                print(f"句子 {idx + 1} TTS异常: {str(e)}")
+                                await websocket.send_json({
+                                    "type": "error",
+                                    "message": f"句子 {idx + 1} TTS处理失败: {str(e)}",
+                                    "paragraph_number": paragraph_number,
+                                    "sequence_number": idx
+                                })
                         
-                    except httpx.HTTPError as e:
-                        await websocket.send_json({
-                            "type": "error",
-                            "message": f"TTS处理失败: {str(e)}",
-                            "paragraph_number": paragraph_number,
-                            "sequence_number": sequence_number
-                        })
+                        print(f"段落 {paragraph_number} 所有句子TTS完成")
+                        
                     except Exception as e:
                         await websocket.send_json({
                             "type": "error",
