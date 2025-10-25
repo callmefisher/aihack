@@ -11,6 +11,9 @@ class WebSocketService {
     this.maxReconnectAttempts = 5;
     this.reconnectDelay = 3000;
     this.url = process.env.REACT_APP_WS_URL || 'ws://localhost:8000/api/ws';
+    this.connectionStatus = 'disconnected';
+    this.heartbeatInterval = null;
+    this.heartbeatTimeout = null;
   }
 
   /**
@@ -24,6 +27,9 @@ class WebSocketService {
         this.ws.onopen = () => {
           console.log('WebSocket已连接');
           this.reconnectAttempts = 0;
+          this.connectionStatus = 'connected';
+          this.emit('connection_status', { status: 'connected' });
+          this.startHeartbeat();
           resolve();
         };
 
@@ -38,11 +44,16 @@ class WebSocketService {
 
         this.ws.onerror = (error) => {
           console.error('WebSocket错误:', error);
+          this.connectionStatus = 'error';
+          this.emit('connection_status', { status: 'error', error });
           reject(error);
         };
 
         this.ws.onclose = () => {
           console.log('WebSocket已断开');
+          this.connectionStatus = 'disconnected';
+          this.emit('connection_status', { status: 'disconnected' });
+          this.stopHeartbeat();
           this.attemptReconnect();
         };
       } catch (error) {
@@ -57,6 +68,12 @@ class WebSocketService {
   attemptReconnect() {
     if (this.reconnectAttempts < this.maxReconnectAttempts) {
       this.reconnectAttempts++;
+      this.connectionStatus = 'reconnecting';
+      this.emit('connection_status', { 
+        status: 'reconnecting', 
+        attempt: this.reconnectAttempts,
+        maxAttempts: this.maxReconnectAttempts 
+      });
       console.log(`尝试重新连接... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
       
       setTimeout(() => {
@@ -66,6 +83,8 @@ class WebSocketService {
       }, this.reconnectDelay);
     } else {
       console.error('达到最大重连次数，停止重连');
+      this.connectionStatus = 'failed';
+      this.emit('connection_status', { status: 'failed' });
       this.emit('max_reconnect_failed', {});
     }
   }
@@ -120,6 +139,12 @@ class WebSocketService {
     const { type, ...payload } = data;
     
     switch (type) {
+      case 'pong':
+        if (this.heartbeatTimeout) {
+          clearTimeout(this.heartbeatTimeout);
+          this.heartbeatTimeout = null;
+        }
+        break;
       case 'status':
         this.emit('status', payload);
         break;
@@ -188,13 +213,51 @@ class WebSocketService {
   }
 
   /**
+   * 启动心跳检测
+   */
+  startHeartbeat() {
+    this.stopHeartbeat();
+    
+    this.heartbeatInterval = setInterval(() => {
+      if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+        this.ws.send(JSON.stringify({ action: 'ping' }));
+        
+        this.heartbeatTimeout = setTimeout(() => {
+          console.warn('心跳超时，连接可能已断开');
+          this.connectionStatus = 'timeout';
+          this.emit('connection_status', { status: 'timeout' });
+          if (this.ws) {
+            this.ws.close();
+          }
+        }, 5000);
+      }
+    }, 30000);
+  }
+
+  /**
+   * 停止心跳检测
+   */
+  stopHeartbeat() {
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval);
+      this.heartbeatInterval = null;
+    }
+    if (this.heartbeatTimeout) {
+      clearTimeout(this.heartbeatTimeout);
+      this.heartbeatTimeout = null;
+    }
+  }
+
+  /**
    * 关闭WebSocket连接
    */
   disconnect() {
+    this.stopHeartbeat();
     if (this.ws) {
       this.ws.close();
       this.ws = null;
     }
+    this.connectionStatus = 'disconnected';
     this.listeners.clear();
   }
 
@@ -203,6 +266,13 @@ class WebSocketService {
    */
   isConnected() {
     return this.ws && this.ws.readyState === WebSocket.OPEN;
+  }
+
+  /**
+   * 获取连接状态
+   */
+  getConnectionStatus() {
+    return this.connectionStatus;
   }
 }
 

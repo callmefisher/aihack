@@ -1,12 +1,84 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 import json
 import httpx
 import asyncio
 from pathlib import Path
 from app.core.config import settings
+import re
 
 router = APIRouter()
+
+character_cache: Dict[str, str] = {}
+
+
+class QiniuLLMService:
+    """七牛云LLM服务"""
+    
+    def __init__(self):
+        self.api_url = "https://openai.qiniu.com/v1/chat/completions"
+        api_key = settings.QINIU_API_KEY
+        if isinstance(api_key, bytes):
+            api_key = api_key.decode('utf-8')
+        self.api_token = api_key.replace('Bearer ', '').strip() if api_key else ""
+    
+    async def simplify_text(self, text: str, scene: str = "", characters: str = "") -> Dict[str, Any]:
+        """
+        使用LLM将文本精简为关键字
+        
+        Args:
+            text: 原始文本
+            scene: 场景信息
+            characters: 角色信息
+            
+        Returns:
+            包含精简文本和角色信息的字典
+        """
+        headers = {
+            "Authorization": f"Bearer {self.api_token}",
+            "Content-Type": "application/json"
+        }
+        
+        prompt = f"""请将以下文本精简为40个字符以内的关键字描述。
+要求：
+1. 提取场景的核心要素
+2. 如果有角色，提取角色名称、特点、性格、外貌等关键信息
+3. 返回格式为JSON: {{"summary": "精简描述", "character": "角色名称", "character_description": "角色描述"}}
+4. 如果没有角色，character和character_description字段为空字符串
+
+场景: {scene if scene else "动漫场景"}
+文本: {text}"""
+        
+        payload = {
+            "messages": [{"role": "user", "content": prompt}],
+            "model": "deepseek-v3",
+            "stream": False
+        }
+        
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                self.api_url,
+                headers=headers,
+                json=payload
+            )
+            response.raise_for_status()
+            result = response.json()
+            
+            content = result.get("choices", [{}])[0].get("message", {}).get("content", "")
+            
+            try:
+                parsed = json.loads(content)
+                return {
+                    "summary": parsed.get("summary", "")[:40],
+                    "character": parsed.get("character", ""),
+                    "character_description": parsed.get("character_description", "")
+                }
+            except json.JSONDecodeError:
+                return {
+                    "summary": content[:40],
+                    "character": "",
+                    "character_description": ""
+                }
 
 
 class QiniuTTSService:
@@ -66,26 +138,46 @@ class QiniuImageService:
         if isinstance(api_key, bytes):
             api_key = api_key.decode('utf-8')
         self.api_token = api_key.replace('Bearer ', '').strip() if api_key else ""
+        self.llm_service = QiniuLLMService()
     
-    def _simplify_text_to_prompt(self, text: str) -> str:
+    async def _simplify_text_to_prompt(self, text: str, scene: str = "") -> str:
         """
-        将原始文本精简为关键字(人物、场景等)
+        使用LLM将原始文本精简为关键字(人物、场景等)
         
         Args:
             text: 原始文本
+            scene: 场景信息
             
         Returns:
             精简后的prompt
         """
-        prompt = text[:200]
-        return prompt
+        try:
+            result = await self.llm_service.simplify_text(text, scene)
+            
+            summary = result.get("summary", "")
+            character = result.get("character", "")
+            character_desc = result.get("character_description", "")
+            
+            if character and character_desc:
+                character_cache[character] = character_desc
+            
+            if character and character in character_cache:
+                prompt = f"{summary}, {character_cache[character]}"
+            else:
+                prompt = summary
+            
+            return prompt[:200]
+        except Exception as e:
+            print(f"LLM精简失败: {e}")
+            return text[:200]
     
-    async def text_to_images(self, text: str) -> Dict[str, Any]:
+    async def text_to_images(self, text: str, scene: str = "") -> Dict[str, Any]:
         """
         调用七牛云文生图API
         
         Args:
             text: 要转换的文本
+            scene: 场景信息
             
         Returns:
             API响应数据，包含base64编码的图片数据
@@ -95,7 +187,7 @@ class QiniuImageService:
             "Content-Type": "application/json"
         }
         
-        prompt = self._simplify_text_to_prompt(text)
+        prompt = await self._simplify_text_to_prompt(text, scene)
         
         payload = {
             "model": "gemini-2.5-flash-image",
@@ -242,6 +334,12 @@ async def websocket_endpoint(websocket: WebSocket):
                 paragraph_number = message.get("paragraph_number")
                 task_id = message.get("task_id")
                 image_url = message.get("image_url")
+                
+                if action == "ping":
+                    await websocket.send_json({
+                        "type": "pong"
+                    })
+                    continue
                 
                 if not text and action != "video":
                     await websocket.send_json({
