@@ -5,8 +5,11 @@ import { getTaskStatus } from '../services/api';
 function TaskStatus({ taskId, onComplete, onError }) {
   const [status, setStatus] = useState(null);
   const [error, setError] = useState('');
+  const [smoothProgress, setSmoothProgress] = useState(0);
 
   useEffect(() => {
+    let progressInterval;
+    
     const pollStatus = async () => {
       try {
         const data = await getTaskStatus(taskId);
@@ -27,8 +30,35 @@ function TaskStatus({ taskId, onComplete, onError }) {
     pollStatus();
     const interval = setInterval(pollStatus, 2000);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      if (progressInterval) clearInterval(progressInterval);
+    };
   }, [taskId, onComplete, onError]);
+
+  useEffect(() => {
+    if (status && status.progress !== undefined) {
+      const targetProgress = status.progress;
+      const step = (targetProgress - smoothProgress) / 20;
+      
+      if (Math.abs(targetProgress - smoothProgress) > 0.1) {
+        const interval = setInterval(() => {
+          setSmoothProgress(prev => {
+            const next = prev + step;
+            if ((step > 0 && next >= targetProgress) || (step < 0 && next <= targetProgress)) {
+              clearInterval(interval);
+              return targetProgress;
+            }
+            return next;
+          });
+        }, 50);
+        
+        return () => clearInterval(interval);
+      } else {
+        setSmoothProgress(targetProgress);
+      }
+    }
+  }, [status, smoothProgress]);
 
   if (error) {
     return (
@@ -62,10 +92,10 @@ function TaskStatus({ taskId, onComplete, onError }) {
           <div className="progress-bar">
             <div 
               className="progress-fill" 
-              style={{ width: `${status.progress}%` }}
+              style={{ width: `${smoothProgress}%` }}
             />
           </div>
-          <div className="progress-text">{status.progress}%</div>
+          <div className="progress-text">{Math.round(smoothProgress)}%</div>
         </div>
 
         {status.current_step && (

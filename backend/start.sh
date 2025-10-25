@@ -19,5 +19,5 @@ echo "🎬 启动 FastAPI 服务器..."
 echo "   访问 API 文档: http://localhost:8000/docs"
 echo "   访问健康检查: http://localhost:8000/health"
 echo ""
-
+source ~/.bashrc
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
