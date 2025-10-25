@@ -3,6 +3,10 @@ from typing import Dict, Any, List
 import json
 import httpx
 import asyncio
+import subprocess
+import tempfile
+import base64
+import os
 from pathlib import Path
 from app.core.config import settings
 
@@ -22,16 +26,102 @@ class QiniuTTSService:
         if isinstance(api_key, bytes):
             api_key = api_key.decode('utf-8')
         self.api_token = api_key.replace('Bearer ', '').strip() if api_key else ""
+        self.background_music_path = Path(__file__).parent.parent.parent.parent / "ht.mp3"
+    
+    def mix_audio_with_background(self, tts_audio_base64: str) -> str:
+        """
+        使用ffmpeg将TTS音频与背景音乐混合
+        
+        Args:
+            tts_audio_base64: base64编码的TTS音频数据
+            
+        Returns:
+            混合后的base64编码音频数据
+        """
+        try:
+            # 检查背景音乐文件是否存在
+            if not self.background_music_path.exists():
+                print(f"背景音乐文件不存在: {self.background_music_path}，返回原始TTS音频")
+                return tts_audio_base64
+            
+            # 检查ffmpeg是否可用
+            try:
+                subprocess.run(['ffmpeg', '-version'], capture_output=True, check=True)
+            except (subprocess.CalledProcessError, FileNotFoundError):
+                print("ffmpeg未安装或不可用，返回原始TTS音频")
+                return tts_audio_base64
+            
+            # 解码TTS音频
+            tts_audio_data = base64.b64decode(tts_audio_base64)
+            
+            # 创建临时文件
+            with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as tts_file:
+                tts_file.write(tts_audio_data)
+                tts_file_path = tts_file.name
+            
+            with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as output_file:
+                output_file_path = output_file.name
+            
+            try:
+                # 使用ffmpeg混合音频
+                # -i: 输入文件
+                # -filter_complex: 复杂滤镜，混合两个音频流
+                # amix=inputs=2: 混合2个音频输入
+                # duration=longest: 输出长度为最长输入的长度
+                # [0:a]: 第一个输入的音频流 (TTS)
+                # [1:a]: 第二个输入的音频流 (背景音乐)
+                # volume=1.0: TTS音量保持不变
+                # volume=0.3: 背景音乐音量降低到30%
+                cmd = [
+                    'ffmpeg',
+                    '-i', tts_file_path,
+                    '-i', str(self.background_music_path),
+                    '-filter_complex', '[0:a]volume=1.0[a1];[1:a]volume=0.3[a2];[a1][a2]amix=inputs=2:duration=longest',
+                    '-y',  # 覆盖输出文件
+                    output_file_path
+                ]
+                
+                result = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    timeout=30
+                )
+                
+                if result.returncode != 0:
+                    print(f"ffmpeg混合失败: {result.stderr}")
+                    return tts_audio_base64
+                
+                # 读取混合后的音频并编码为base64
+                with open(output_file_path, 'rb') as f:
+                    mixed_audio_data = f.read()
+                
+                mixed_audio_base64 = base64.b64encode(mixed_audio_data).decode('utf-8')
+                print(f"音频混合成功: TTS长度={len(tts_audio_data)}, 混合后长度={len(mixed_audio_data)}")
+                
+                return mixed_audio_base64
+                
+            finally:
+                # 清理临时文件
+                try:
+                    os.unlink(tts_file_path)
+                    os.unlink(output_file_path)
+                except:
+                    pass
+                    
+        except Exception as e:
+            print(f"音频混合过程出错: {str(e)}，返回原始TTS音频")
+            return tts_audio_base64
     
     async def text_to_speech(self, text: str) -> Dict[str, Any]:
         """
-        调用七牛云TTS API
+        调用七牛云TTS API并混合背景音乐
         
         Args:
             text: 要转换的文本
             
         Returns:
-            API响应数据
+            API响应数据（包含混合背景音乐后的音频）
         """
         print("step1 tts apitoken"+self.api_token)
         headers = {
@@ -57,7 +147,20 @@ class QiniuTTSService:
                 json=payload
             )
             response.raise_for_status()
-            return response.json()
+            result = response.json()
+            
+            # 获取原始TTS音频数据
+            if 'data' in result:
+                original_audio_base64 = result['data']
+                print(f"TTS生成成功，开始混合背景音乐...")
+                
+                # 混合背景音乐
+                mixed_audio_base64 = self.mix_audio_with_background(original_audio_base64)
+                
+                # 更新返回数据
+                result['data'] = mixed_audio_base64
+            
+            return result
 
 
 class QiniuLLMService:
