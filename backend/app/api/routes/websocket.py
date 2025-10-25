@@ -477,11 +477,15 @@ async def websocket_endpoint(websocket: WebSocket):
                 
                 # 处理TTS请求
                 if action == "tts":
+                    # 获取序列号，默认为0
+                    sequence_number = message.get("sequence_number", 0)
+                    
                     await websocket.send_json({
                         "type": "status",
                         "message": "开始处理TTS和图片生成...",
                         "text": text,
-                        "paragraph_number": paragraph_number
+                        "paragraph_number": paragraph_number,
+                        "sequence_number": sequence_number
                     })
                     
                     async def generate_images_background():
@@ -492,26 +496,30 @@ async def websocket_endpoint(websocket: WebSocket):
                                 "type": "image_result",
                                 "data": image_result,
                                 "text": text,
-                                "paragraph_number": paragraph_number
+                                "paragraph_number": paragraph_number,
+                                "sequence_number": sequence_number
                             })
                             
                         except httpx.TimeoutException as e:
                             await websocket.send_json({
                                 "type": "error",
                                 "message": f"图片生成超时: {str(e)}",
-                                "paragraph_number": paragraph_number
+                                "paragraph_number": paragraph_number,
+                                "sequence_number": sequence_number
                             })
                         except httpx.HTTPError as e:
                             await websocket.send_json({
                                 "type": "error",
                                 "message": f"图片生成失败: {str(e)}",
-                                "paragraph_number": paragraph_number
+                                "paragraph_number": paragraph_number,
+                                "sequence_number": sequence_number
                             })
                         except Exception as e:
                             await websocket.send_json({
                                 "type": "error",
                                 "message": f"图片生成失败: {str(e)}",
-                                "paragraph_number": paragraph_number
+                                "paragraph_number": paragraph_number,
+                                "sequence_number": sequence_number
                             })
                     
                     asyncio.create_task(generate_images_background())
@@ -562,6 +570,7 @@ async def websocket_endpoint(websocket: WebSocket):
                                     "data": tts_result,
                                     "text": sentence,
                                     "paragraph_number": paragraph_number,
+                                    "sequence_number": idx,
                                     "sentence_index": idx + 1,
                                     "total_sentences": len(sentences)
                                 })
@@ -573,14 +582,16 @@ async def websocket_endpoint(websocket: WebSocket):
                                 await websocket.send_json({
                                     "type": "error",
                                     "message": f"句子 {idx + 1} TTS处理失败: {str(e)}",
-                                    "paragraph_number": paragraph_number
+                                    "paragraph_number": paragraph_number,
+                                    "sequence_number": idx
                                 })
                             except Exception as e:
                                 print(f"句子 {idx + 1} TTS异常: {str(e)}")
                                 await websocket.send_json({
                                     "type": "error",
                                     "message": f"句子 {idx + 1} TTS处理失败: {str(e)}",
-                                    "paragraph_number": paragraph_number
+                                    "paragraph_number": paragraph_number,
+                                    "sequence_number": idx
                                 })
                         
                         print(f"段落 {paragraph_number} 所有句子TTS完成")
@@ -589,7 +600,8 @@ async def websocket_endpoint(websocket: WebSocket):
                         await websocket.send_json({
                             "type": "error",
                             "message": f"TTS处理失败: {str(e)}",
-                            "paragraph_number": paragraph_number
+                            "paragraph_number": paragraph_number,
+                            "sequence_number": sequence_number
                         })
                 
                 # 处理视频生成请求
@@ -597,17 +609,20 @@ async def websocket_endpoint(websocket: WebSocket):
                     print(f"=== 处理视频生成请求 ===")
                     image_base64 = message.get("image_base64", "")
                     text = message.get("text", "")
+                    sequence_number = message.get("sequence_number", 0)
                     
                     print(f"image_base64_length: {len(image_base64) if image_base64 else 0}")
                     print(f"text: {text[:50] if text else 'empty'}...")
                     print(f"paragraph_number: {paragraph_number}")
+                    print(f"sequence_number: {sequence_number}")
                     
                     if not image_base64:
                         print(f"❌ 图片数据为空，返回错误")
                         await websocket.send_json({
                             "type": "error",
                             "message": "图片数据不能为空",
-                            "paragraph_number": paragraph_number
+                            "paragraph_number": paragraph_number,
+                            "sequence_number": sequence_number
                         })
                         continue
                     
@@ -615,7 +630,8 @@ async def websocket_endpoint(websocket: WebSocket):
                     await websocket.send_json({
                         "type": "status",
                         "message": "开始生成视频...",
-                        "paragraph_number": paragraph_number
+                        "paragraph_number": paragraph_number,
+                        "sequence_number": sequence_number
                     })
                     
                     async def generate_video_background():
@@ -642,7 +658,8 @@ async def websocket_endpoint(websocket: WebSocket):
                                             "type": "video_progress",
                                             "message": f"视频生成中... {progress_percent}%",
                                             "progress": progress_percent,
-                                            "paragraph_number": paragraph_number
+                                            "paragraph_number": paragraph_number,
+                                            "sequence_number": sequence_number
                                         })
                                 
                                 video_final_result = await qiniu_video.poll_video_status(
@@ -660,7 +677,8 @@ async def websocket_endpoint(websocket: WebSocket):
                                             await websocket.send_json({
                                                 "type": "video_result",
                                                 "video_url": video_url,
-                                                "paragraph_number": paragraph_number
+                                                "paragraph_number": paragraph_number,
+                                                "sequence_number": sequence_number
                                             })
                         except Exception as e:
                             print(f"视频生成错误: {str(e)}")
@@ -670,7 +688,8 @@ async def websocket_endpoint(websocket: WebSocket):
                                     await websocket.send_json({
                                         "type": "error",
                                         "message": f"视频生成失败: {str(e)}",
-                                        "paragraph_number": paragraph_number
+                                        "paragraph_number": paragraph_number,
+                                        "sequence_number": sequence_number
                                     })
                             except:
                                 pass

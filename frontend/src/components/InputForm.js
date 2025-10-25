@@ -55,10 +55,11 @@ function InputForm({ onTaskCreated, onAudioCache, onImageCache }) {
             const audioUrl = URL.createObjectURL(blob);
             
             const paragraphNumber = data.paragraph_number;
+            const sequenceNumber = data.sequence_number !== undefined ? data.sequence_number : 0;
             
             if (onAudioCache && paragraphNumber !== undefined) {
-              onAudioCache(paragraphNumber, audioUrl, true);
-              console.log(`音频已缓存且将自动播放，段落 ${paragraphNumber}`);
+              onAudioCache(paragraphNumber, audioUrl, true, sequenceNumber);
+              console.log(`音频已缓存且将自动播放，段落 ${paragraphNumber}, 序列号 ${sequenceNumber}`);
             }
           } catch (error) {
             console.error('解码base64音频失败:', error);
@@ -80,10 +81,11 @@ function InputForm({ onTaskCreated, onAudioCache, onImageCache }) {
             });
             
             const paragraphNumber = data.paragraph_number;
+            const sequenceNumber = data.sequence_number !== undefined ? data.sequence_number : 0;
             
             if (onImageCache && paragraphNumber !== undefined) {
-              onImageCache(paragraphNumber, imageUrls);
-              console.log(`图片已缓存，段落 ${paragraphNumber}，图片数量 ${imageUrls.length}`);
+              onImageCache(paragraphNumber, imageUrls, sequenceNumber);
+              console.log(`图片已缓存，段落 ${paragraphNumber}, 序列号 ${sequenceNumber}，图片数量 ${imageUrls.length}`);
             }
           } catch (error) {
             console.error('处理图片数据失败:', error);
