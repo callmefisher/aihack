@@ -224,9 +224,9 @@ class WebSocketService {
         this.heartbeatTimeout = setTimeout(() => {
           console.warn('心跳超时，连接可能已断开');
           this.ws.close();
-        }, 5000);
+        }, 200000000);
       }
-    }, 30000);
+    }, 200000000);
   }
 
   stopHeartbeat() {
