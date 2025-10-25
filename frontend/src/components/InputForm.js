@@ -17,16 +17,22 @@ function InputForm({ onTaskCreated, onAudioCache }) {
   // WebSocket连接管理
   useEffect(() => {
     if (useWebSocket) {
-      // 连接WebSocket
-      wsService.connect()
-        .then(() => {
-          setWsConnected(true);
-          console.log('WebSocket连接成功');
-        })
-        .catch(error => {
-          console.error('WebSocket连接失败:', error);
-          setWsConnected(false);
-        });
+      // 检查是否已经连接，避免重复连接
+      if (wsService.isConnected()) {
+        setWsConnected(true);
+        console.log('WebSocket已连接，复用现有连接');
+      } else {
+        // 仅在未连接时才建立新连接
+        wsService.connect()
+          .then(() => {
+            setWsConnected(true);
+            console.log('WebSocket连接成功');
+          })
+          .catch(error => {
+            console.error('WebSocket连接失败:', error);
+            setWsConnected(false);
+          });
+      }
 
       // 注册事件监听
       const handleStatus = (data) => {
@@ -123,13 +129,14 @@ function InputForm({ onTaskCreated, onAudioCache }) {
       wsService.on('error', handleError);
       wsService.on('complete', handleComplete);
 
-      // 清理函数
+      // 清理函数 - 只移除事件监听器，不断开连接
       return () => {
         wsService.off('status', handleStatus);
         wsService.off('tts_result', handleTTSResult);
         wsService.off('image_result', handleImageResult);
         wsService.off('error', handleError);
         wsService.off('complete', handleComplete);
+        // 注意：不调用 wsService.disconnect()，保持连接活跃
       };
     }
   }, [useWebSocket]);
