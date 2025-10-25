@@ -96,7 +96,7 @@ function App() {
       </main>
 
       <footer className="App-footer">
-        <p>© 2024 Novel to Anime Generator | Powered by AI</p>
+        <p>© 2025 Novel to Anime Generator | Powered by AI</p>
       </footer>
     </div>
   );

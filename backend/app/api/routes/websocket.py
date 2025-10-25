@@ -152,7 +152,7 @@ class QiniuTTSService:
             }
         }
         
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=3600.0) as client:
             response = await client.post(
                 self.api_url,
                 headers=headers,
@@ -217,7 +217,7 @@ class QiniuLLMService:
             "stream": False
         }
         
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=3600.0) as client:
             response = await client.post(
                 self.api_url,
                 headers=headers,
@@ -306,7 +306,7 @@ class QiniuImageService:
             "size": "1024x1024"
         }
         
-        async with httpx.AsyncClient(timeout=120.0) as client:
+        async with httpx.AsyncClient(timeout=3600.0) as client:
             print(f"文生图 payload: {payload}")
             response = await client.post(
                 self.api_url,
@@ -359,10 +359,10 @@ class QiniuVideoService:
                 "durationSeconds": 8,
                 "sampleCount": 1
             },
-            "model": "veo-3.0-fast-generate-preview"
+            "model": "veo-3.1-fast-generate-preview"
         }
         
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=3600.0) as client:
             response = await client.post(
                 self.api_url,
                 headers=headers,
@@ -388,7 +388,7 @@ class QiniuVideoService:
         
         url = f"{self.api_url}/{video_id}"
         
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=3600.0) as client:
             response = await client.get(url, headers=headers)
             response.raise_for_status()
             return response.json()

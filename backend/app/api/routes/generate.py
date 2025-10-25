@@ -54,7 +54,7 @@ async def generate_image(request: GenerateImageRequest):
         image_url = None
         
         if not image_path.exists():
-            async with httpx.AsyncClient(timeout=60.0) as client:
+            async with httpx.AsyncClient(timeout=3600.0) as client:
                 response = await client.get(f"https://picsum.photos/800/600?random={request.paragraph_number}")
                 if response.status_code == 200:
                     with open(image_path, 'wb') as f:
@@ -83,7 +83,7 @@ async def generate_video(request: GenerateVideoRequest):
         video_path = output_dir / f"video_{request.paragraph_number}.mp4"
         
         if not video_path.exists():
-            async with httpx.AsyncClient(timeout=120.0) as client:
+            async with httpx.AsyncClient(timeout=3600.0) as client:
                 response = await client.get("https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4")
                 if response.status_code == 200:
                     with open(video_path, 'wb') as f:
