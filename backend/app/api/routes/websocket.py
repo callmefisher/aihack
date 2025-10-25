@@ -14,7 +14,10 @@ class QiniuTTSService:
     
     def __init__(self):
         self.api_url = "https://openai.qiniu.com/v1/voice/tts"
-        self.api_token = settings.QINIU_API_KEY
+        api_key = settings.QINIU_API_KEY
+        if isinstance(api_key, bytes):
+            api_key = api_key.decode('utf-8')
+        self.api_token = api_key.replace('Bearer ', '').strip() if api_key else ""
     
     async def text_to_speech(self, text: str) -> Dict[str, Any]:
         """
@@ -59,7 +62,10 @@ class QiniuImageService:
     
     def __init__(self):
         self.api_url = "https://openai.qiniu.com/v1/images/generations"
-        self.api_token = settings.QINIU_API_KEY
+        api_key = settings.QINIU_API_KEY
+        if isinstance(api_key, bytes):
+            api_key = api_key.decode('utf-8')
+        self.api_token = api_key.replace('Bearer ', '').strip() if api_key else ""
     
     def _simplify_text_to_prompt(self, text: str) -> str:
         """
@@ -116,7 +122,10 @@ class QiniuVideoService:
     
     def __init__(self):
         self.api_url = "https://openai.qiniu.com/v1/videos/generations"
-        self.api_token = settings.QINIU_API_KEY
+        api_key = settings.QINIU_API_KEY
+        if isinstance(api_key, bytes):
+            api_key = api_key.decode('utf-8')
+        self.api_token = api_key.replace('Bearer ', '').strip() if api_key else ""
     
     async def generate_video(self, prompt: str, image_base64: str) -> Dict[str, Any]:
         """
