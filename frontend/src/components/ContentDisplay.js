@@ -473,11 +473,13 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap, i
       const paragraphNumber = autoPlayAudio.paragraphNumber;
       const index = paragraphNumber - 1;
       const sequenceNumber = autoPlayAudio.sequenceNumber !== undefined ? autoPlayAudio.sequenceNumber : 0;
-      console.log(`自动播放音频: 段落 ${paragraphNumber}, 序列号 ${sequenceNumber}, 索引=${index}`);
+      console.log(`收到自动播放音频请求: 段落 ${paragraphNumber}, 序列号 ${sequenceNumber}, 索引=${index}`);
       
-      if (currentAudio) {
-        currentAudio.pause();
-        setCurrentAudio(null);
+      // 关键修复：如果当前正在播放音频，不要打断，而是等待当前播放完成
+      if (currentAudio && !currentAudio.paused) {
+        console.log(`⚠️  当前正在播放音频，新音频加入队列等待: 段落 ${paragraphNumber}, 序列号 ${sequenceNumber}`);
+        // 音频已经在队列中，会在当前音频播放结束时自动播放
+        return;
       }
       
       const audio = new Audio(autoPlayAudio.audioUrl);
@@ -489,6 +491,7 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap, i
         audio.onended = () => {
           console.log(`音频播放结束: 段落 ${paragraphNumber}, 序列号 ${sequenceNumber}`);
           
+          // 检查队列中是否有下一个序列
           if (audioQueueMap && audioQueueMap[paragraphNumber]) {
             const queue = audioQueueMap[paragraphNumber];
             const currentIndex = queue.findIndex(item => item.sequenceNumber === sequenceNumber);
