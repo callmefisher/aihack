@@ -94,16 +94,16 @@ class WebSocketService {
    * @param {string} taskId - 任务ID
    * @param {string} text - 文本内容
    * @param {number} paragraphNumber - 段落编号
-   * @param {string} imageUrl - 图片URL
+   * @param {string} imageBase64 - base64编码的图片数据
    */
-  sendVideoRequest(taskId, text, paragraphNumber, imageUrl) {
+  sendVideoRequest(taskId, text, paragraphNumber, imageBase64) {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       const message = {
         action: 'video',
         task_id: taskId,
         text: text,
         paragraph_number: paragraphNumber,
-        image_url: imageUrl
+        image_base64: imageBase64
       };
       this.ws.send(JSON.stringify(message));
     } else {

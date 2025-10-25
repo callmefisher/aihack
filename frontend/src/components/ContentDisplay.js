@@ -362,8 +362,26 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap })
 
       const currentImage = item.images && item.images.length > 0 ? item.images[0] : null;
       
+      if (!currentImage) {
+        console.error('没有可用的图片');
+        setItems(prev => {
+          const updated = [...prev];
+          updated[index] = { ...updated[index], loadingVideo: false, progress: 0 };
+          return updated;
+        });
+        clearInterval(progressInterval);
+        return;
+      }
+      
+      let imageBase64 = '';
+      if (currentImage.startsWith('data:image/')) {
+        imageBase64 = currentImage.split(',')[1];
+      } else {
+        imageBase64 = currentImage;
+      }
+      
       if (useWebSocket && wsService.isConnected()) {
-        wsService.sendVideoRequest(taskId, item.text, paragraphNumber, currentImage);
+        wsService.sendVideoRequest(taskId, item.text, paragraphNumber, imageBase64);
         
         const handleVideoResult = (data) => {
           if (data.paragraph_number === paragraphNumber) {
@@ -399,7 +417,7 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap })
         
         wsService.on('video_result', handleVideoResult);
       } else {
-        const response = await generateVideo(taskId, item.text, paragraphNumber, currentImage);
+        const response = await generateVideo(taskId, item.text, paragraphNumber, imageBase64);
         
         clearInterval(progressInterval);
 
