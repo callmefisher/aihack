@@ -31,6 +31,13 @@ function App() {
     setImageQueueMap({});
     setVideoQueueMap({});
     
+    try {
+      localStorage.clear();
+      sessionStorage.clear();
+    } catch (e) {
+      console.warn('清理缓存失败:', e);
+    }
+    
     const splitParagraphs = text.split(/\n+/).filter(p => p.trim().length > 0);
     setParagraphs(splitParagraphs);
     setShowContent(true);
@@ -107,8 +114,8 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <h1>📚 小说转动漫生成器</h1>
-        <p>将您的小说文本转换为动漫风格的视频</p>
+        <h1>听，见</h1>
+        <p style={{ fontSize: '1.5rem', fontWeight: '500', letterSpacing: '0.1em', marginTop: '15px' }}>让文字变成画面，让故事触手可及</p>
         {showContent && (
           <button className="reset-button" onClick={handleReset}>
             🔄 重新开始
