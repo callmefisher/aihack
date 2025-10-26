@@ -350,6 +350,12 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap, i
     console.log(`WebSocket连接状态: ${wsService.isConnected()}`);
     console.log(`useWebSocket: ${useWebSocket}`);
 
+    if (!wsService.isConnected()) {
+      console.error(`❌ WebSocket未连接`);
+      alert('WebSocket连接已断开，请刷新页面后重试');
+      return;
+    }
+
     if (videoCacheMap[paragraphNumber]) {
       console.log(`使用缓存的视频: 段落 ${paragraphNumber}`);
       setItems(prev => {
@@ -405,84 +411,72 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap, i
       console.log(`图片Base64长度: ${imageBase64.length}`);
       console.log(`文本内容: ${item.text.substring(0, 50)}...`);
       
-      if (useWebSocket && wsService.isConnected()) {
-        console.log(`✅ 使用WebSocket发送视频生成请求`);
-        try {
-          wsService.sendVideoRequest(taskId, item.text, paragraphNumber, imageBase64);
-          console.log(`✅ WebSocket视频请求已发送`);
-        } catch (error) {
-          console.error(`❌ WebSocket发送失败:`, error);
-          clearInterval(progressInterval);
-          setItems(prev => {
-            const updated = [...prev];
-            updated[index] = { ...updated[index], loadingVideo: false, progress: 0 };
-            return updated;
-          });
-          alert(`视频生成请求发送失败: ${error.message}`);
-          return;
-        }
-        
-        const handleVideoResult = (data) => {
-          console.log(`收到视频结果:`, data);
-          if (data.paragraph_number === paragraphNumber) {
-            clearInterval(progressInterval);
-            
-            setVideoCacheMap(prev => ({
-              ...prev,
-              [paragraphNumber]: data.video_url
-            }));
-            
-            setItems(prev => {
-              const updated = [...prev];
-              updated[index] = {
-                ...updated[index],
-                video: data.video_url,
-                loadingVideo: false,
-                progress: 100
-              };
-              return updated;
-            });
-
-            setTimeout(() => {
-              setItems(prev => {
-                const updated = [...prev];
-                updated[index] = { ...updated[index], progress: 0 };
-                return updated;
-              });
-            }, 1000);
-            
-            wsService.off('video_result', handleVideoResult);
-          }
-        };
-        
-        const handleVideoError = (data) => {
-          console.error(`收到视频生成错误:`, data);
-          if (data.paragraph_number === paragraphNumber) {
-            clearInterval(progressInterval);
-            setItems(prev => {
-              const updated = [...prev];
-              updated[index] = { ...updated[index], loadingVideo: false, progress: 0 };
-              return updated;
-            });
-            alert(`视频生成失败: ${data.message}`);
-            wsService.off('error', handleVideoError);
-            wsService.off('video_result', handleVideoResult);
-          }
-        };
-        
-        wsService.on('video_result', handleVideoResult);
-        wsService.on('error', handleVideoError);
-      } else {
-        console.error(`❌ WebSocket未连接，无法生成视频`);
+      console.log(`✅ 使用WebSocket发送视频生成请求`);
+      try {
+        wsService.sendVideoRequest(taskId, item.text, paragraphNumber, imageBase64);
+        console.log(`✅ WebSocket视频请求已发送`);
+      } catch (error) {
+        console.error(`❌ WebSocket发送失败:`, error);
         clearInterval(progressInterval);
         setItems(prev => {
           const updated = [...prev];
           updated[index] = { ...updated[index], loadingVideo: false, progress: 0 };
           return updated;
         });
-        alert('请确保WebSocket已连接后再生成视频');
+        alert(`视频生成请求发送失败: ${error.message}`);
         return;
       }
+      
+      const handleVideoResult = (data) => {
+        console.log(`收到视频结果:`, data);
+        if (data.paragraph_number === paragraphNumber) {
+          clearInterval(progressInterval);
+          
+          setVideoCacheMap(prev => ({
+            ...prev,
+            [paragraphNumber]: data.video_url
+          }));
+          
+          setItems(prev => {
+            const updated = [...prev];
+            updated[index] = {
+              ...updated[index],
+              video: data.video_url,
+              loadingVideo: false,
+              progress: 100
+            };
+            return updated;
+          });
+
+          setTimeout(() => {
+            setItems(prev => {
+              const updated = [...prev];
+              updated[index] = { ...updated[index], progress: 0 };
+              return updated;
+            });
+          }, 1000);
+          
+          wsService.off('video_result', handleVideoResult);
+        }
+      };
+      
+      const handleVideoError = (data) => {
+        console.error(`收到视频生成错误:`, data);
+        if (data.paragraph_number === paragraphNumber) {
+          clearInterval(progressInterval);
+          setItems(prev => {
+            const updated = [...prev];
+            updated[index] = { ...updated[index], loadingVideo: false, progress: 0 };
+            return updated;
+          });
+          alert(`视频生成失败: ${data.message}`);
+          wsService.off('error', handleVideoError);
+          wsService.off('video_result', handleVideoResult);
+        }
+      };
+      
+      wsService.on('video_result', handleVideoResult);
+      wsService.on('error', handleVideoError);
 
     } catch (error) {
       console.error(`❌ 生成视频错误 (段落 ${paragraphNumber}):`, error);
