@@ -719,7 +719,13 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap, i
                     onClick={() => handleGenerateVideo(index)}
                     disabled={item.loadingVideo}
                   >
-                    {item.loadingVideo ? '⏳ 生成中...' : '🎬 生成视频'}
+                    {item.loadingVideo ? (
+                      <>
+                        <span className="hourglass-icon rotating">⏳</span> 生成中...
+                      </>
+                    ) : (
+                      '🎬 生成视频'
+                    )}
                   </button>
                 </div>
                 {item.loadingVideo && (

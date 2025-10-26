@@ -304,6 +304,15 @@
   to { transform: rotate(360deg); }
 }
 
+.hourglass-icon {
+  display: inline-block;
+  transition: transform 0.3s ease;
+}
+
+.hourglass-icon.rotating {
+  animation: spin 2s linear infinite;
+}
+
 .progress-bar {
   height: 10px;
   background: rgba(255, 255, 255, 0.2);
