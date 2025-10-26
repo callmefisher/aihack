@@ -521,6 +521,20 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap, i
         return;
       }
       
+      // 优化 #3: 确保段落优先级 - 段落1必须完成后才能播放段落2
+      if (paragraphNumber > 1) {
+        const prevParagraph = paragraphNumber - 1;
+        const prevQueue = audioQueueMap[prevParagraph];
+        if (prevQueue && prevQueue.length > 0) {
+          const prevSeqs = playedSequences[prevParagraph] || new Set();
+          const allPrevPlayed = prevQueue.every(item => prevSeqs.has(item.sequenceNumber));
+          if (!allPrevPlayed) {
+            console.log(`⚠️  段落 ${paragraphNumber} 等待段落 ${prevParagraph} 全部播放完成`);
+            return;
+          }
+        }
+      }
+      
       // 优化 #1: 确保按序播放 - 检查前面的序列是否都已播放
       const paragraphSeqs = playedSequences[paragraphNumber] || new Set();
       for (let i = 0; i < sequenceNumber; i++) {
