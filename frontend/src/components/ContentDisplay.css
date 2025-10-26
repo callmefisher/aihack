@@ -346,6 +346,20 @@
   }
 }
 
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.rotating-icon {
+  display: inline-block;
+  animation: rotate 2s linear infinite;
+}
+
 .loading-container p {
   margin: 10px 0 0 0;
   color: rgba(255, 255, 255, 0.8);
