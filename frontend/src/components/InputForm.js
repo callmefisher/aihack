@@ -188,25 +188,24 @@ function InputForm({ onTaskCreated, onAudioCache, onImageCache }) {
           }
           
           let urlText;
-          const contentType = fetchResponse.headers.get('content-type');
-          const charset = contentType?.match(/charset=([^;]+)/)?.[1]?.toLowerCase();
+          const contentType = fetchResponse.headers.get('content-type') || '';
+          const charsetMatch = contentType.match(/charset=([^;]+)/i);
+          let charset = charsetMatch ? charsetMatch[1].trim().toLowerCase() : 'utf-8';
           
-          if (charset && (charset === 'gbk' || charset === 'gb2312' || charset === 'gb18030')) {
-            const arrayBuffer = await fetchResponse.arrayBuffer();
-            const decoder = new TextDecoder(charset);
-            urlText = decoder.decode(arrayBuffer);
-          } else if (!charset || charset === 'utf-8' || charset === 'utf8') {
-            urlText = await fetchResponse.text();
-          } else {
-            const arrayBuffer = await fetchResponse.arrayBuffer();
+          const chineseEncodings = ['gbk', 'gb2312', 'gb18030'];
+          if (chineseEncodings.includes(charset)) {
             try {
+              const arrayBuffer = await fetchResponse.arrayBuffer();
               const decoder = new TextDecoder(charset);
               urlText = decoder.decode(arrayBuffer);
-            } catch (e) {
-              console.warn(`不支持的编码格式 ${charset}，尝试使用UTF-8`);
-              const utf8Decoder = new TextDecoder('utf-8');
-              urlText = utf8Decoder.decode(arrayBuffer);
+            } catch (decodeError) {
+              console.warn(`Failed to decode with ${charset}, falling back to UTF-8`, decodeError);
+              const arrayBuffer = await fetchResponse.arrayBuffer();
+              const decoder = new TextDecoder('utf-8');
+              urlText = decoder.decode(arrayBuffer);
             }
+          } else {
+            urlText = await fetchResponse.text();
           }
           
           setProgress(30);
