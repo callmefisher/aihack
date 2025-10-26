@@ -190,23 +190,40 @@ function InputForm({ onTaskCreated, onAudioCache, onImageCache }) {
           let urlText;
           const contentType = fetchResponse.headers.get('content-type') || '';
           const charsetMatch = contentType.match(/charset=([^;]+)/i);
-          let charset = charsetMatch ? charsetMatch[1].trim().toLowerCase() : 'utf-8';
+          let charset = charsetMatch ? charsetMatch[1].trim().toLowerCase() : '';
           
-          const chineseEncodings = ['gbk', 'gb2312', 'gb18030'];
-          if (chineseEncodings.includes(charset)) {
+          const arrayBuffer = await fetchResponse.arrayBuffer();
+          
+          const tryDecodeWithEncoding = (buffer, encoding) => {
             try {
-              const arrayBuffer = await fetchResponse.arrayBuffer();
-              const decoder = new TextDecoder(charset);
-              urlText = decoder.decode(arrayBuffer);
-            } catch (decodeError) {
-              console.warn(`Failed to decode with ${charset}, falling back to UTF-8`, decodeError);
-              const arrayBuffer = await fetchResponse.arrayBuffer();
-              const decoder = new TextDecoder('utf-8');
-              urlText = decoder.decode(arrayBuffer);
+              const decoder = new TextDecoder(encoding);
+              const text = decoder.decode(buffer);
+              const chineseChars = text.match(/[\u4e00-\u9fa5]/g);
+              const questionMarks = text.match(/\ufffd/g);
+              const questionMarkRatio = questionMarks ? questionMarks.length / text.length : 0;
+              return {
+                text,
+                score: (chineseChars ? chineseChars.length : 0) - (questionMarkRatio * 1000)
+              };
+            } catch (e) {
+              return { text: '', score: -Infinity };
             }
-          } else {
-            urlText = await fetchResponse.text();
+          };
+          
+          const encodingsToTry = charset && charset !== 'utf-8' 
+            ? [charset, 'gbk', 'gb2312', 'gb18030', 'utf-8'] 
+            : ['utf-8', 'gbk', 'gb2312', 'gb18030'];
+          
+          let bestResult = { text: '', score: -Infinity };
+          for (const encoding of encodingsToTry) {
+            const result = tryDecodeWithEncoding(arrayBuffer, encoding);
+            if (result.score > bestResult.score) {
+              bestResult = result;
+              console.log(`Trying encoding ${encoding}, score: ${result.score}`);
+            }
           }
+          
+          urlText = bestResult.text;
           
           setProgress(30);
           
