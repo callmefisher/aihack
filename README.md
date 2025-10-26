@@ -3,7 +3,9 @@
 > 让文字变成画面，让故事触手可及
 
 ## 🚀 Demo地址
-[Demo展示页面](https://www.bilibili.com/video/BV1ptsZz2Eax/)
+1. [Demo展示页面](https://www.bilibili.com/video/BV1AnxNzvEs5/)
+
+2. [Demo备用下载](https://public.qnlinking.com/NoNameDemo-1026.mov)
 
 ---
 
