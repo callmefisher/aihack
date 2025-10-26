@@ -127,7 +127,7 @@ function InputForm({ onTaskCreated, onAudioCache, onImageCache }) {
         // 注意：不调用 wsService.disconnect()，保持连接活跃
       };
     }
-  }, [useWebSocket]);
+  }, [useWebSocket, onAudioCache, onImageCache]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
