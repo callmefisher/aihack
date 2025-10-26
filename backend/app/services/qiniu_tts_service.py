@@ -16,7 +16,7 @@ class QiniuTTSService:
         if isinstance(api_key, bytes):
             api_key = api_key.decode('utf-8')
         self.api_token = api_key.replace('Bearer ', '').strip() if api_key else ""
-        self.background_music_path = Path(__file__).parent.parent.parent.parent / "ht.mp3"
+        self.background_music_path = Path(__file__).parent.parent.parent / "ht.mp3"
     
     def mix_audio_with_background(self, tts_audio_base64: str) -> str:
         try:

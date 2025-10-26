@@ -3,11 +3,39 @@ from pydantic import BaseModel, EmailStr
 from typing import Dict, Optional
 import hashlib
 import secrets
+import json
+from pathlib import Path
 
 router = APIRouter()
 
-users_db: Dict[str, Dict] = {}
-sessions: Dict[str, str] = {}
+DB_DIR = Path(__file__).parent.parent.parent / "data"
+USERS_DB_FILE = DB_DIR / "users.json"
+SESSIONS_DB_FILE = DB_DIR / "sessions.json"
+
+DB_DIR.mkdir(exist_ok=True)
+
+def load_users() -> Dict[str, Dict]:
+    if USERS_DB_FILE.exists():
+        with open(USERS_DB_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    return {}
+
+def save_users(users: Dict[str, Dict]):
+    with open(USERS_DB_FILE, 'w', encoding='utf-8') as f:
+        json.dump(users, f, ensure_ascii=False, indent=2)
+
+def load_sessions() -> Dict[str, str]:
+    if SESSIONS_DB_FILE.exists():
+        with open(SESSIONS_DB_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    return {}
+
+def save_sessions(sessions: Dict[str, str]):
+    with open(SESSIONS_DB_FILE, 'w', encoding='utf-8') as f:
+        json.dump(sessions, f, ensure_ascii=False, indent=2)
+
+users_db: Dict[str, Dict] = load_users()
+sessions: Dict[str, str] = load_sessions()
 
 class UserRegister(BaseModel):
     username: str
@@ -51,9 +79,11 @@ async def register(user: UserRegister):
         "email": user.email,
         "password": hashed_password
     }
+    save_users(users_db)
     
     token = generate_token()
     sessions[token] = user.username
+    save_sessions(sessions)
     
     return UserResponse(
         username=user.username,
@@ -81,6 +111,7 @@ async def login(credentials: UserLogin):
     
     token = generate_token()
     sessions[token] = credentials.username
+    save_sessions(sessions)
     
     return UserResponse(
         username=user["username"],
@@ -92,6 +123,7 @@ async def login(credentials: UserLogin):
 async def logout(token: str):
     if token in sessions:
         del sessions[token]
+        save_sessions(sessions)
         return {"message": "登出成功"}
     
     raise HTTPException(
