@@ -187,7 +187,27 @@ function InputForm({ onTaskCreated, onAudioCache, onImageCache }) {
             throw new Error(`无法获取URL内容: ${fetchResponse.status}`);
           }
           
-          const urlText = await fetchResponse.text();
+          let urlText;
+          const contentType = fetchResponse.headers.get('content-type') || '';
+          const charsetMatch = contentType.match(/charset=([^;]+)/i);
+          let charset = charsetMatch ? charsetMatch[1].trim().toLowerCase() : 'utf-8';
+          
+          const chineseEncodings = ['gbk', 'gb2312', 'gb18030'];
+          if (chineseEncodings.includes(charset)) {
+            try {
+              const arrayBuffer = await fetchResponse.arrayBuffer();
+              const decoder = new TextDecoder(charset);
+              urlText = decoder.decode(arrayBuffer);
+            } catch (decodeError) {
+              console.warn(`Failed to decode with ${charset}, falling back to UTF-8`, decodeError);
+              const arrayBuffer = await fetchResponse.arrayBuffer();
+              const decoder = new TextDecoder('utf-8');
+              urlText = decoder.decode(arrayBuffer);
+            }
+          } else {
+            urlText = await fetchResponse.text();
+          }
+          
           setProgress(30);
           
           setTextInput(urlText);
