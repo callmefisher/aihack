@@ -161,13 +161,19 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', maxWidth: '1200px' }}>
-          <div style={{ flex: 1 }}>
-            <h1>听，见</h1>
-            <p style={{ fontSize: '1.5rem', fontWeight: '500', letterSpacing: '0.1em', marginTop: '15px' }}>让文字变成画面，让故事触手可及</p>
+        <div className="header-content">
+          <div className="header-title-section">
+            <div className="header-logo">🎬</div>
+            <div className="header-text">
+              <h1>听，见</h1>
+              <p style={{ fontSize: '1.5rem', fontWeight: '500', letterSpacing: '0.1em' }}>让文字变成画面，让故事触手可及</p>
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-            <span style={{ color: '#fff', fontSize: '0.9rem' }}>欢迎, {localStorage.getItem('username')}</span>
+          <div className="header-actions">
+            <div className="user-info">
+              <span className="user-avatar">👤</span>
+              <span>{localStorage.getItem('username')}</span>
+            </div>
             {showContent && (
               <button className="reset-button" onClick={handleReset}>
                 🔄 重新开始

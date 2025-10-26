@@ -250,13 +250,13 @@ function InputForm({ onTaskCreated, onAudioCache, onImageCache }) {
             className={inputType === 'text' ? 'active' : ''}
             onClick={() => setInputType('text')}
           >
-            文本输入
+            <span>📄 文本输入</span>
           </button>
           <button
             className={inputType === 'url' ? 'active' : ''}
             onClick={() => setInputType('url')}
           >
-            URL 输入
+            <span>🔗 URL 输入</span>
           </button>
         </div>
 
