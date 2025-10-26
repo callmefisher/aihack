@@ -17,8 +17,6 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap, i
   const [audioQueueIndex, setAudioQueueIndex] = useState({});
   const [imageQueueIndex, setImageQueueIndex] = useState({});
   const processedAutoPlayRef = React.useRef(new Set());
-  const [nextSequenceToPlay, setNextSequenceToPlay] = useState({});
-  const [isParagraphBlocked, setIsParagraphBlocked] = useState(false);
 
   useEffect(() => {
     if (paragraphs && paragraphs.length > 0) {
@@ -176,23 +174,6 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap, i
       }
       setAudioPlaying(null);
       setCurrentPlayingParagraph(null);
-      
-      setNextSequenceToPlay(prev => ({
-        ...prev,
-        [paragraphNumber]: 0
-      }));
-      
-      if (paragraphNumber === 1) {
-        setIsParagraphBlocked(false);
-      }
-      
-      console.log(`暂停播放段落 ${paragraphNumber}，已清理序列号状态，下次播放将从序列号 0 开始`);
-      return;
-    }
-
-    if (paragraphNumber !== 1 && isParagraphBlocked) {
-      console.log(`段落 ${paragraphNumber} 被阻止播放，因为段落 1 尚未完成`);
-      alert('请先完成段落 1 的播放');
       return;
     }
 
@@ -201,19 +182,10 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap, i
       setCurrentAudio(null);
     }
 
-    if (paragraphNumber === 1) {
-      setIsParagraphBlocked(true);
-    }
-
-    setNextSequenceToPlay(prev => ({
-      ...prev,
-      [paragraphNumber]: 0
-    }));
-
     if (audioQueueMap && audioQueueMap[paragraphNumber] && audioQueueMap[paragraphNumber].length > 0) {
       console.log(`播放整个段落的音频队列: 段落 ${paragraphNumber}, 队列长度 ${audioQueueMap[paragraphNumber].length}`);
       const queue = audioQueueMap[paragraphNumber];
-      playAudioQueueSequential(queue, index, paragraphNumber);
+      playAudioQueue(queue, 0, index, paragraphNumber);
       return;
     }
 
@@ -239,59 +211,6 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap, i
       setAudioPlaying(null);
       setCurrentAudio(null);
       setCurrentPlayingParagraph(null);
-    };
-  };
-
-  const playAudioQueueSequential = (queue, itemIndex, paragraphNumber) => {
-    const nextSeq = nextSequenceToPlay[paragraphNumber] || 0;
-    const nextItem = queue.find(item => item.sequenceNumber === nextSeq);
-    
-    if (!nextItem) {
-      console.log(`等待序列号 ${nextSeq} 到达，段落 ${paragraphNumber}`);
-      return;
-    }
-    
-    console.log(`播放队列序列: 段落 ${paragraphNumber}, 序列号 ${nextItem.sequenceNumber}`);
-    
-    const audio = new Audio(nextItem.audioUrl);
-    audio.play();
-    setAudioPlaying(itemIndex);
-    setCurrentAudio(audio);
-    setCurrentPlayingParagraph(paragraphNumber);
-    
-    audio.onended = () => {
-      console.log(`序列播放完成: 段落 ${paragraphNumber}, 序列号 ${nextItem.sequenceNumber}`);
-      
-      const nextSeqNum = nextSeq + 1;
-      setNextSequenceToPlay(prev => ({
-        ...prev,
-        [paragraphNumber]: nextSeqNum
-      }));
-      
-      const hasMoreInQueue = queue.some(item => item.sequenceNumber === nextSeqNum);
-      
-      if (hasMoreInQueue) {
-        playAudioQueueSequential(queue, itemIndex, paragraphNumber);
-      } else {
-        console.log(`段落 ${paragraphNumber} 所有已接收序列播放完成，等待后续序列...`);
-        setAudioPlaying(null);
-        setCurrentAudio(null);
-        setCurrentPlayingParagraph(null);
-        
-        if (paragraphNumber === 1) {
-          setIsParagraphBlocked(false);
-        }
-      }
-    };
-    
-    audio.onerror = (error) => {
-      console.error(`播放错误: 段落 ${paragraphNumber}, 序列号 ${nextItem.sequenceNumber}`, error);
-      const nextSeqNum = nextSeq + 1;
-      setNextSequenceToPlay(prev => ({
-        ...prev,
-        [paragraphNumber]: nextSeqNum
-      }));
-      playAudioQueueSequential(queue, itemIndex, paragraphNumber);
     };
   };
 
@@ -570,28 +489,16 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap, i
       processedAutoPlayRef.current.add(audioKey);
       console.log(`收到自动播放音频请求: 段落 ${paragraphNumber}, 序列号 ${sequenceNumber}, 索引=${index}`);
       
-      if (paragraphNumber !== 1 && isParagraphBlocked) {
-        console.log(`⚠️  段落 ${paragraphNumber} 被阻止自动播放，因为段落 1 尚未完成`);
-        return;
-      }
-      
-      const expectedSequence = nextSequenceToPlay[paragraphNumber] || 0;
-      if (sequenceNumber !== expectedSequence) {
-        console.log(`⚠️  收到序列号 ${sequenceNumber}，但期望序列号 ${expectedSequence}。等待前序音频`);
-        return;
-      }
-      
+      // Bug #2 修复：如果当前正在播放音频，检查段落号
       if (currentAudio && !currentAudio.paused) {
+        // 如果正在播放的是不同段落，不要打断，等待当前段落完成
         if (currentPlayingParagraph !== null && currentPlayingParagraph !== paragraphNumber) {
           console.log(`⚠️  当前正在播放段落 ${currentPlayingParagraph}，不打断。新段落 ${paragraphNumber} 的音频将等待`);
           return;
         }
+        // 如果是同一段落的新序列，也让它等待，会在当前序列结束时自动播放
         console.log(`⚠️  当前正在播放段落 ${paragraphNumber} 的音频，新序列 ${sequenceNumber} 加入队列等待`);
         return;
-      }
-      
-      if (paragraphNumber === 1) {
-        setIsParagraphBlocked(true);
       }
       
       const audio = new Audio(autoPlayAudio.audioUrl);
@@ -604,43 +511,33 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap, i
         audio.onended = () => {
           console.log(`音频播放结束: 段落 ${paragraphNumber}, 序列号 ${sequenceNumber}`);
           
-          setNextSequenceToPlay(prev => ({
-            ...prev,
-            [paragraphNumber]: sequenceNumber + 1
-          }));
-          
+          // 检查队列中是否有下一个序列
           if (audioQueueMap && audioQueueMap[paragraphNumber]) {
             const queue = audioQueueMap[paragraphNumber];
-            const nextItem = queue.find(item => item.sequenceNumber === sequenceNumber + 1);
+            const currentIndex = queue.findIndex(item => item.sequenceNumber === sequenceNumber);
             
-            if (nextItem) {
+            if (currentIndex !== -1 && currentIndex + 1 < queue.length) {
+              const nextItem = queue[currentIndex + 1];
               console.log(`自动播放下一个序列: 段落 ${paragraphNumber}, 序列号 ${nextItem.sequenceNumber}`);
-              playAudioQueueSequential(queue, index, paragraphNumber);
+              
+              playAudioQueueFromIndex(queue, currentIndex + 1, index, paragraphNumber);
             } else {
-              console.log(`段落 ${paragraphNumber} 等待下一个序列...`);
+              console.log(`段落 ${paragraphNumber} 的所有序列已播放完成`);
               setAudioPlaying(null);
               setCurrentAudio(null);
               setCurrentPlayingParagraph(null);
-              
-              if (paragraphNumber === 1) {
-                setIsParagraphBlocked(false);
-              }
             }
           } else {
             setAudioPlaying(null);
             setCurrentAudio(null);
             setCurrentPlayingParagraph(null);
-            
-            if (paragraphNumber === 1) {
-              setIsParagraphBlocked(false);
-            }
           }
         };
       }).catch(error => {
         console.error(`❌ 自动播放音频失败:`, error);
       });
     }
-  }, [autoPlayAudio, audioQueueMap, currentPlayingParagraph, nextSequenceToPlay, isParagraphBlocked]);
+  }, [autoPlayAudio, audioQueueMap, currentPlayingParagraph]);
 
   const playAudioQueueFromIndex = (queue, startIndex, itemIndex, paragraphNumber) => {
     if (startIndex >= queue.length) {
