@@ -7,7 +7,8 @@ from app.core.config import settings
 class QiniuVideoService:
     
     def __init__(self):
-        self.api_url = "https://openai.qiniu.com/v1/videos/generations"
+        # self.api_url = "https://openai.qiniu.com/v1/videos/generations"
+        self.api_url = "https://api.qnaigc.com/v1/videos/generations"
         api_key = settings.QINIU_API_KEY
         if isinstance(api_key, bytes):
             api_key = api_key.decode('utf-8')
