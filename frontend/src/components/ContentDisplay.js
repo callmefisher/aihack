@@ -67,9 +67,14 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap, i
       });
       
       console.log(`准备更新段落 ${paragraph_number}, 索引=${paragraph_number - 1}`);
+      const index = paragraph_number - 1;
+      
+      if (window.imageProgressIntervals && window.imageProgressIntervals[index]) {
+        clearInterval(window.imageProgressIntervals[index]);
+      }
+      
       setItems(prev => {
         const updated = [...prev];
-        const index = paragraph_number - 1;
         console.log(`  当前items长度=${updated.length}, 目标索引=${index}`);
         console.log(`  段落 ${paragraph_number} 更新前的images:`, updated[index]?.images);
         
@@ -157,8 +162,29 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap, i
       setItems(prev => prev.map(item => ({
         ...item,
         loadingImage: true,
-        progress: 10
+        progress: 0
       })));
+      
+      const totalDuration = 120000;
+      const updateInterval = 1000;
+      const totalSteps = totalDuration / updateInterval;
+      const progressPerStep = 90 / totalSteps;
+      
+      const progressIntervals = itemsList.map((item, index) => {
+        let currentProgress = 0;
+        return setInterval(() => {
+          setItems(prev => {
+            const updated = [...prev];
+            if (updated[index] && updated[index].loadingImage && currentProgress < 90) {
+              currentProgress = Math.min(90, currentProgress + progressPerStep);
+              updated[index] = { ...updated[index], progress: Math.floor(currentProgress) };
+            }
+            return updated;
+          });
+        }, updateInterval);
+      });
+      
+      window.imageProgressIntervals = progressIntervals;
     }
   };
 
@@ -353,17 +379,21 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap, i
 
     try {
       let currentProgress = 0;
+      const totalDuration = 400000;
+      const updateInterval = 1000;
+      const totalSteps = totalDuration / updateInterval;
+      const progressPerStep = 90 / totalSteps;
+      
       const progressInterval = setInterval(() => {
         setItems(prev => {
           const updated = [...prev];
           if (updated[index] && currentProgress < 90) {
-            const increment = Math.random() * 2 + 0.5;
-            currentProgress = Math.min(90, currentProgress + increment);
+            currentProgress = Math.min(90, currentProgress + progressPerStep);
             updated[index] = { ...updated[index], progress: Math.floor(currentProgress) };
           }
           return updated;
         });
-      }, 300);
+      }, updateInterval);
 
       let imageBase64 = '';
       if (currentImage.startsWith('data:image/')) {

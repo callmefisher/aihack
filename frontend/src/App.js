@@ -1,11 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './App.css';
 import InputForm from './components/InputForm';
 import TaskStatus from './components/TaskStatus';
 import VideoPlayer from './components/VideoPlayer';
 import ContentDisplay from './components/ContentDisplay';
+import Login from './components/Login';
+import Register from './components/Register';
 
 function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [showRegister, setShowRegister] = useState(false);
   const [taskId, setTaskId] = useState(null);
   const [taskCompleted, setTaskCompleted] = useState(false);
   const [videoUrl, setVideoUrl] = useState(null);
@@ -20,6 +24,13 @@ function App() {
   const [imageQueueMap, setImageQueueMap] = useState({});
   const [videoQueueMap, setVideoQueueMap] = useState({});
 
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      setIsAuthenticated(true);
+    }
+  }, []);
+
   const handleTaskCreated = (id, text) => {
     setTaskId(id);
     setTaskCompleted(false);
@@ -30,13 +41,6 @@ function App() {
     setAudioQueueMap({});
     setImageQueueMap({});
     setVideoQueueMap({});
-    
-    try {
-      localStorage.clear();
-      sessionStorage.clear();
-    } catch (e) {
-      console.warn('清理缓存失败:', e);
-    }
     
     const splitParagraphs = text.split(/\n+/).filter(p => p.trim().length > 0);
     setParagraphs(splitParagraphs);
@@ -111,16 +115,69 @@ function App() {
     setVideoQueueMap({});
   };
 
+  const handleLoginSuccess = () => {
+    setIsAuthenticated(true);
+  };
+
+  const handleRegisterSuccess = () => {
+    setShowRegister(false);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('username');
+    setIsAuthenticated(false);
+    handleReset();
+  };
+
+  if (!isAuthenticated) {
+    if (showRegister) {
+      return (
+        <div className="App">
+          <Register onRegisterSuccess={handleRegisterSuccess} />
+          <div className="auth-switch">
+            已有账号？
+            <button onClick={() => setShowRegister(false)}>
+              立即登录
+            </button>
+          </div>
+        </div>
+      );
+    } else {
+      return (
+        <div className="App">
+          <Login onLoginSuccess={handleLoginSuccess} />
+          <div className="auth-switch">
+            还没有账号？
+            <button onClick={() => setShowRegister(true)}>
+              立即注册
+            </button>
+          </div>
+        </div>
+      );
+    }
+  }
+
   return (
     <div className="App">
       <header className="App-header">
-        <h1>听，见</h1>
-        <p style={{ fontSize: '1.5rem', fontWeight: '500', letterSpacing: '0.1em', marginTop: '15px' }}>让文字变成画面，让故事触手可及</p>
-        {showContent && (
-          <button className="reset-button" onClick={handleReset}>
-            🔄 重新开始
-          </button>
-        )}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', maxWidth: '1200px' }}>
+          <div style={{ flex: 1 }}>
+            <h1>听，见</h1>
+            <p style={{ fontSize: '1.5rem', fontWeight: '500', letterSpacing: '0.1em', marginTop: '15px' }}>让文字变成画面，让故事触手可及</p>
+          </div>
+          <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+            <span style={{ color: '#fff', fontSize: '0.9rem' }}>欢迎, {localStorage.getItem('username')}</span>
+            {showContent && (
+              <button className="reset-button" onClick={handleReset}>
+                🔄 重新开始
+              </button>
+            )}
+            <button className="reset-button" onClick={handleLogout}>
+              🚪 退出登录
+            </button>
+          </div>
+        </div>
       </header>
 
       <main className="App-main">

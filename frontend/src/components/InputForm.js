@@ -224,34 +224,6 @@ function InputForm({ onTaskCreated, onAudioCache, onImageCache }) {
       <div className="input-form-card">
         <h2>📝 输入小说内容</h2>
         
-        {/* WebSocket连接状态 */}
-        <div className="ws-status">
-          <label>
-            <input
-              type="checkbox"
-              checked={useWebSocket}
-              onChange={(e) => setUseWebSocket(e.target.checked)}
-            />
-            使用WebSocket模式
-          </label>
-          {useWebSocket && (
-            <span className={`status-indicator ${wsConnected ? 'connected' : 'disconnected'}`}>
-              {wsConnected ? '● 已连接' : '○ 未连接'}
-            </span>
-          )}
-        </div>
-
-        {/* 流式消息显示 */}
-        {streamingMessages.length > 0 && (
-          <div className="streaming-messages">
-            <h3>实时消息:</h3>
-            {streamingMessages.map((msg, index) => (
-              <div key={index} className={`message message-${msg.type}`}>
-                <strong>{msg.type}:</strong> {msg.message || JSON.stringify(msg.data)}
-              </div>
-            ))}
-          </div>
-        )}
         
         <div className="input-type-selector">
           <button
