@@ -10,6 +10,8 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap, i
   const [currentAudio, setCurrentAudio] = useState(null);
   const [currentPlayingParagraph, setCurrentPlayingParagraph] = useState(null);
   const [zoomedImage, setZoomedImage] = useState(null);
+  const [zoomedImageIndex, setZoomedImageIndex] = useState(0);
+  const [zoomedImageItem, setZoomedImageItem] = useState(null);
   const [speechPlaying, setSpeechPlaying] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState({});
   const [useWebSocket, setUseWebSocket] = useState(true);
@@ -269,12 +271,36 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap, i
     };
   };
 
-  const handleImageClick = (imageUrl) => {
+  const handleImageClick = (imageUrl, itemIndex, imgIndex) => {
     setZoomedImage(imageUrl);
+    setZoomedImageIndex(imgIndex);
+    setZoomedImageItem(itemIndex);
   };
 
   const handleCloseZoom = () => {
     setZoomedImage(null);
+    setZoomedImageIndex(0);
+    setZoomedImageItem(null);
+  };
+
+  const handlePrevZoomedImage = () => {
+    if (zoomedImageItem === null) return;
+    const item = items[zoomedImageItem];
+    if (!item.images || item.images.length <= 1) return;
+    
+    const newIndex = zoomedImageIndex === 0 ? item.images.length - 1 : zoomedImageIndex - 1;
+    setZoomedImageIndex(newIndex);
+    setZoomedImage(item.images[newIndex]);
+  };
+
+  const handleNextZoomedImage = () => {
+    if (zoomedImageItem === null) return;
+    const item = items[zoomedImageItem];
+    if (!item.images || item.images.length <= 1) return;
+    
+    const newIndex = (zoomedImageIndex + 1) % item.images.length;
+    setZoomedImageIndex(newIndex);
+    setZoomedImage(item.images[newIndex]);
   };
 
   const handlePlaySpeech = (text, index) => {
@@ -664,7 +690,7 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap, i
                             key={imgIndex}
                             src={imgUrl} 
                             alt={`Scene ${item.id}-${imgIndex + 1}`} 
-                            onClick={() => handleImageClick(imgUrl)}
+                            onClick={() => handleImageClick(imgUrl, index, imgIndex)}
                             style={{ 
                               cursor: 'pointer',
                               display: (currentImageIndex[index] || 0) === imgIndex ? 'block' : 'none'
@@ -770,7 +796,30 @@ function ContentDisplay({ taskId, paragraphs, onProgressUpdate, audioCacheMap, i
         <div className="image-modal" onClick={handleCloseZoom}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <button className="modal-close" onClick={handleCloseZoom}>✕</button>
+            {zoomedImageItem !== null && items[zoomedImageItem]?.images?.length > 1 && (
+              <>
+                <button 
+                  className="modal-nav-btn modal-nav-prev" 
+                  onClick={handlePrevZoomedImage}
+                  aria-label="上一张"
+                >
+                  ‹
+                </button>
+                <button 
+                  className="modal-nav-btn modal-nav-next" 
+                  onClick={handleNextZoomedImage}
+                  aria-label="下一张"
+                >
+                  ›
+                </button>
+              </>
+            )}
             <img src={zoomedImage} alt="Zoomed" />
+            {zoomedImageItem !== null && items[zoomedImageItem]?.images?.length > 1 && (
+              <div className="modal-image-counter">
+                {zoomedImageIndex + 1} / {items[zoomedImageItem].images.length}
+              </div>
+            )}
           </div>
         </div>
       )}
